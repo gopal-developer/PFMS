@@ -394,7 +394,7 @@ def process_option2(input_file, original_file=None):
                     else:
                         worksheet.write(row_num + 1, col_num, value, body_format)
 
-        # Sheet 2: TG-Wise Exp Rec vs Non-Rec
+        # Sheet 2: TG-Wise Exp Recurring
         tg_summary_for_excel = inst_rn.groupby('TG', as_index=False).agg({
             col: 'sum' for col in inst_rn.columns if col not in ['TG', 'Child Agency Name']
         })
