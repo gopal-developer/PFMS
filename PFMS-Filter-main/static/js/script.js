@@ -1,0 +1,1979 @@
+// Global variables
+let selectedFile = null;
+window.thubTgsComparisonData = null;
+window.thubTotalsData = null;
+window.allTHubData = null;
+window.allTGDetailedData = [];
+
+// DOM elements
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const selectedFileDiv = document.getElementById('selectedFile');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const removeFileBtn = document.getElementById('removeFile');
+const processBtn = document.getElementById('processBtn');
+const fileReadyMsg = document.getElementById('fileReadyMsg');
+const progressContainer = document.getElementById('progressContainer');
+const progressFill = document.getElementById('progressFill');
+const progressText = document.getElementById('progressText');
+const resultsSection = document.getElementById('resultsSection');
+const downloadBtn = document.getElementById('downloadBtn');
+const alert = document.getElementById('alert');
+const alertMessage = document.getElementById('alertMessage');
+const alertClose = document.getElementById('alertClose');
+const metadataInfo = document.getElementById('metadataInfo');
+const fromDateValue = document.getElementById('fromDateValue');
+const toDateValue = document.getElementById('toDateValue');
+const financialYearInfo = document.getElementById('financialYearInfo');
+const financialYearValue = document.getElementById('financialYearValue');
+
+// Format currency with commas
+function formatCurrency(value) {
+    if (value === null || value === undefined || value === '') return '-';
+    const num = parseFloat(value);
+    if (isNaN(num)) return value;
+    return num.toLocaleString('en-IN', { 
+        minimumFractionDigits: 2, 
+        maximumFractionDigits: 2 
+    });
+}
+
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+// Show alert
+function showAlert(message, type = 'error') {
+    alert.className = `alert ${type}`;
+    alertMessage.textContent = message;
+    alert.style.display = 'flex';
+    setTimeout(() => {
+        alert.style.display = 'none';
+    }, 5000);
+}
+
+// Close alert
+alertClose.addEventListener('click', () => {
+    alert.style.display = 'none';
+});
+
+// Upload area click
+uploadArea.addEventListener('click', (e) => {
+    // Don't trigger if clicking on the browse button label
+    if (e.target.closest('label') || e.target.closest('input')) {
+        return;
+    }
+    fileInput.click();
+});
+
+// Drag and drop
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        handleFileSelect(files[0]);
+    }
+});
+
+// File input change
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handleFileSelect(e.target.files[0]);
+    }
+});
+
+// Handle file selection (without auto-processing)
+function handleFileSelect(file) {
+    if (!file.name.match(/\.(xlsx|xls)$/)) {
+        showAlert('Please select an Excel file (.xlsx or .xls)');
+        return;
+    }
+
+    if (file.size > 16 * 1024 * 1024) {
+        showAlert('File size must be less than 16MB');
+        return;
+    }
+
+    selectedFile = file;
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    
+    uploadArea.style.display = 'none';
+    selectedFileDiv.style.display = 'flex';
+    fileReadyMsg.style.display = 'block';
+    
+    // Enable the Generate button
+    processBtn.disabled = false;
+}
+
+// Remove file
+removeFileBtn.addEventListener('click', () => {
+    selectedFile = null;
+    fileInput.value = '';
+    uploadArea.style.display = 'block';
+    selectedFileDiv.style.display = 'none';
+    fileReadyMsg.style.display = 'none';
+    resultsSection.style.display = 'none';
+    progressContainer.style.display = 'none';
+    processBtn.disabled = true;
+});
+
+// Generate button click
+processBtn.addEventListener('click', async () => {
+    if (!selectedFile) {
+        showAlert('Please select a file first');
+        return;
+    }
+    
+    // Disable button during processing
+    processBtn.disabled = true;
+    processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+    
+    await processFile();
+    
+    // Re-enable button after processing
+    processBtn.disabled = false;
+    processBtn.innerHTML = '<i class="fas fa-cogs"></i> Generate Report';
+});
+
+// Process file
+async function processFile() {
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    progressContainer.style.display = 'block';
+    progressFill.style.width = '0%';
+    progressText.textContent = 'Uploading file...';
+
+    // Simulate progress
+    let progress = 0;
+    const progressInterval = setInterval(() => {
+        progress += 5;
+        if (progress <= 90) {
+            progressFill.style.width = progress + '%';
+        }
+    }, 200);
+
+    try {
+        const response = await fetch('/process', {
+            method: 'POST',
+            body: formData
+        });
+
+        clearInterval(progressInterval);
+        progressFill.style.width = '100%';
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Processing failed');
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            progressText.textContent = 'Processing complete!';
+            showAlert('File processed successfully!', 'success');
+            
+            // Display results and set default view to Document View
+            displayResults(data.preview);
+            resultsSection.style.display = 'block';
+            
+            // Set Document View as default
+            const viewToggle = document.getElementById('viewToggle');
+            if (viewToggle) {
+                viewToggle.style.display = 'flex';
+                const documentViewBtn = viewToggle.querySelector('[data-view="document"]');
+                if (documentViewBtn) {
+                    documentViewBtn.click();
+                }
+            }
+            
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+            }, 1000);
+        }
+    } catch (error) {
+        clearInterval(progressInterval);
+        progressContainer.style.display = 'none';
+        showAlert(error.message || 'An error occurred while processing the file');
+        
+        // Don't reset file on error, allow user to try again
+        processBtn.disabled = false;
+        processBtn.innerHTML = '<i class="fas fa-cogs"></i> Generate Report';
+    }
+}
+
+// Store TG Summary data globally for download
+let currentTGSummaryData = [];
+let allTGDetailedData = []; // Store all TG detailed data for combined download
+let allTHubData = []; // Store all T-Hub data for combined download
+
+// Download TG Summary Table as CSV
+function downloadTGSummary(data) {
+    if (!data || data.length === 0) {
+        showAlert('No data available to download', 'error');
+        return;
+    }
+    
+    // Create CSV content
+    const headers = ['TG', 'Recurring - Expenditure Limit', 'Recurring - Expenditure Spent', 'Recurring - Balance', 'Non-Recurring - Expenditure Limit', 'Non-Recurring - Expenditure Spent', 'Non-Recurring - Balance'];
+    
+    let csv = headers.join(',') + '\n';
+    
+    data.forEach(row => {
+        const values = headers.map(header => {
+            let value = row[header];
+            if (value === null || value === undefined) value = '';
+            // Escape quotes and wrap in quotes if needed
+            if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
+                value = '"' + value.replace(/"/g, '""') + '"';
+            }
+            return value;
+        });
+        csv += values.join(',') + '\n';
+    });
+    
+    // Create blob and download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'TG_Wise_Exp_Rec_vs_Non_Rec.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showAlert('TG Summary downloaded successfully!', 'success');
+}
+
+// Download T-Hub Summary
+function downloadTHubSummary(data) {
+    if (!data) {
+        showAlert('No data available to download', 'error');
+        return;
+    }
+    
+    // Create CSV content
+    const headers = ['Sanctioned Head', 'Total Funds Released', 'Total Expenditure', 'Balance'];
+    
+    let csv = headers.join(',') + '\n';
+    
+    // Add Recurring row
+    const recurringRow = [
+        'Recurring',
+        data.total_funds_released || 0,
+        data.total_expenditure || 0,
+        data.balance || 0
+    ];
+    csv += recurringRow.join(',') + '\n';
+    
+    // Add Total row
+    const totalRow = [
+        'Total',
+        data.total_funds_released || 0,
+        data.total_expenditure || 0,
+        data.balance || 0
+    ];
+    csv += totalRow.join(',') + '\n';
+    
+    // Create blob and download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'T-Hub_Wise_Expenditure_Summary.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showAlert('T-Hub Summary downloaded successfully!', 'success');
+}
+
+// Add download button event listener
+document.addEventListener('DOMContentLoaded', () => {
+    const downloadTGSummaryBtn = document.getElementById('downloadTGSummaryBtn');
+    if (downloadTGSummaryBtn) {
+        downloadTGSummaryBtn.addEventListener('click', () => {
+            downloadTGSummary(currentTGSummaryData);
+        });
+    }
+    
+    const downloadAllTGTablesBtn = document.getElementById('downloadAllTGTablesBtn');
+    if (downloadAllTGTablesBtn) {
+        downloadAllTGTablesBtn.addEventListener('click', () => {
+            downloadAllTGTables();
+        });
+    }
+    
+    const downloadTHubTotalsBtn = document.getElementById('downloadTHubTotalsBtn');
+    if (downloadTHubTotalsBtn) {
+        downloadTHubTotalsBtn.addEventListener('click', () => {
+            showTHubTotalsFormatDialog();
+        });
+    }
+    
+    const downloadAllTHubTablesBtn = document.getElementById('downloadAllTHubTablesBtn');
+    if (downloadAllTHubTablesBtn) {
+        downloadAllTHubTablesBtn.addEventListener('click', () => {
+            downloadAllTHubTables();
+        });
+    }
+    
+    const downloadTHubSummaryBtn = document.getElementById('downloadTHubSummaryBtn');
+    if (downloadTHubSummaryBtn) {
+        downloadTHubSummaryBtn.addEventListener('click', () => {
+            downloadTHubSummary(window.thubTotalsData);
+        });
+    }
+    
+    const downloadThubTgsComparisonBtn = document.getElementById('downloadThubTgsComparisonBtn');
+    if (downloadThubTgsComparisonBtn) {
+        downloadThubTgsComparisonBtn.addEventListener('click', () => {
+            showThubTgsComparisonFormatDialog();
+        });
+    }
+});
+
+// Display results in tables
+function displayResults(preview) {
+    // Display metadata if available
+    let hasMetadata = false;
+    
+    // Display From Date and To Date
+    if (preview.from_date || preview.to_date) {
+        if (preview.from_date) {
+            fromDateValue.textContent = preview.from_date;
+        }
+        if (preview.to_date) {
+            toDateValue.textContent = preview.to_date;
+        }
+        hasMetadata = true;
+    }
+    
+    // Display Financial Year if available
+    if (preview.financial_year) {
+        financialYearValue.textContent = preview.financial_year;
+        financialYearInfo.style.display = 'block';
+        hasMetadata = true;
+    } else {
+        financialYearInfo.style.display = 'none';
+    }
+    
+    // Show metadata section if there's any metadata
+    if (hasMetadata) {
+        metadataInfo.style.display = 'block';
+    } else {
+        metadataInfo.style.display = 'none';
+    }
+
+    // Recurring summary table
+    createTable('recurringTable', preview.recurring_summary, [
+        'Grant Type', 'Total_Expenditure_Limit', 
+        'Total_Expenditure_Spent', 'Total_Balance'
+    ]);
+
+    // Institute split table - with explicit column order
+    createTable('splitTable', preview.institute_split, [
+        'TG', 'Child Agency Name',
+        'Recurring - Expenditure Limit', 'Recurring - Expenditure Spent', 'Recurring - Balance',
+        'Non-Recurring - Expenditure Limit', 'Non-Recurring - Expenditure Spent', 'Non-Recurring - Balance'
+    ]);
+
+    // TG Summary table - with explicit column order
+    if (preview.tg_summary_table && preview.tg_summary_table.length > 0) {
+        currentTGSummaryData = preview.tg_summary_table;
+        const tgSummaryColumns = [
+            'TG',
+            'Recurring - Expenditure Limit',
+            'Recurring - Expenditure Spent',
+            'Recurring - Balance',
+            'Non-Recurring - Expenditure Limit',
+            'Non-Recurring - Expenditure Spent',
+            'Non-Recurring - Balance'
+        ];
+        createTable('tgSummaryTable', preview.tg_summary_table, tgSummaryColumns);
+        
+        // Also populate the Excel View TG Summary table
+        createTable('tgSummaryTableExcel', preview.tg_summary_table, tgSummaryColumns);
+        
+        // Display T-Hub & TGs comparison table
+        displayTHubTgsComparison(preview.tg_summary_table, preview.thub_summary, preview.to_date);
+        
+        // Display TG detailed tables below the summary
+        displayTGDetailedTables(preview.tg_summary_table, preview.to_date);
+    }
+
+    // T-Hub table
+    if (preview.thub_summary && preview.thub_summary.length > 0) {
+        allTHubData = preview.thub_summary.map(row => ({
+            hub: row['Hub'],
+            sanction_number: row['Assignment Sanction Number'],
+            grant_type: row['Grant Type'],
+            total_funds_released: row['Expenditure_Limit'],
+            total_expenditure: row['Expenditure_Spent'],
+            balance: row['Balance'],
+            toDate: preview.to_date
+        }));
+    }
+    createTable('thubTable', preview.thub_summary, [
+        'Hub', 'Assignment Sanction Number', 'Grant Type',
+        'Expenditure_Limit', 'Expenditure_Spent', 'Balance'
+    ]);
+
+    // T-Hub Totals table (displayed above TG tables)
+    if (preview.thub_totals) {
+        displayTHubTotalsTable(preview.thub_totals, preview.to_date);
+    }
+
+    // Display TG-Wise data - removed as TG-Wise Exp Rec tab is no longer used
+    // if (preview.tg_wise_summary && Object.keys(preview.tg_wise_summary).length > 0) {
+    //     displayTGWiseSummary(preview.tg_wise_summary, preview.to_date);
+    // }
+}
+
+// Create table from data
+function createTable(tableId, data, columns) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    if (!thead || !tbody) return;
+    
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+
+    if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 40px;">No data available</td></tr>';
+        return;
+    }
+
+    // Get columns
+    const cols = columns || Object.keys(data[0]);
+    
+    // Create header
+    const headerRow = document.createElement('tr');
+    cols.forEach(col => {
+        const th = document.createElement('th');
+        th.textContent = col.replace(/_/g, ' ');
+        headerRow.appendChild(th);
+    });
+    // Add Remarks column header
+    const remarksHeader = document.createElement('th');
+    remarksHeader.textContent = 'Remarks (if any)';
+    headerRow.appendChild(remarksHeader);
+    thead.appendChild(headerRow);
+
+    // Create rows
+    data.forEach(row => {
+        const tr = document.createElement('tr');
+        cols.forEach(col => {
+            const td = document.createElement('td');
+            let value = row[col];
+            
+            // Check if numeric
+            const isNumeric = col.toLowerCase().includes('expenditure') || 
+                             col.toLowerCase().includes('balance') || 
+                             col.toLowerCase().includes('limit') ||
+                             col.toLowerCase().includes('total') ||
+                             col.toLowerCase().includes('spent');
+            
+            if (isNumeric && value !== null && value !== undefined) {
+                td.textContent = formatCurrency(value);
+                td.className = 'number';
+                
+                // Add color for balance
+                if (col.toLowerCase().includes('balance')) {
+                    const numValue = parseFloat(value);
+                    if (numValue > 0) td.classList.add('positive');
+                    else if (numValue < 0) td.classList.add('negative');
+                }
+            } else {
+                td.textContent = value || '-';
+            }
+            
+            tr.appendChild(td);
+        });
+        
+        // Add Remarks column cell
+        const remarksTd = document.createElement('td');
+        remarksTd.textContent = '';
+        tr.appendChild(remarksTd);
+        
+        // Add special styling for Grand Total row
+        if (row['TG'] === 'Grand Total' || row[cols[0]] === 'Grand Total') {
+            tr.classList.add('grand-total');
+        }
+        
+        tbody.appendChild(tr);
+    });
+}
+
+// Display T-Hub Totals Table
+function displayTHubTotalsTable(thubTotals, toDate) {
+    const section = document.getElementById('thubTotalsSection');
+    if (!section) return;
+    
+    // Show the section
+    section.style.display = 'block';
+    
+    const table = document.getElementById('thubTotalsTable');
+    if (!table) return;
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    if (!thead || !tbody) return;
+    
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    
+    // Create header row
+    const headerRow = document.createElement('tr');
+    const headers = [
+        { main: 'Sanctioned Head', roman: '(I)' },
+        { main: 'Total Funds Released', roman: '(II)' },
+        { main: 'Total Expenditure', roman: '(III)' },
+        { main: `Balance as on (${toDate || 'DD/MM/YYYY'})`, roman: '(VI = II - III)' },
+        { main: 'Remarks', roman: '(if any)' }
+    ];
+    
+    headers.forEach(headerObj => {
+        const th = document.createElement('th');
+        th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    
+    // Create Recurring row
+    const recurringRow = document.createElement('tr');
+    const recurringCells = [
+        'Recurring',
+        thubTotals.total_funds_released || 0,
+        thubTotals.total_expenditure || 0,
+        thubTotals.balance || 0,
+        ''
+    ];
+    
+    recurringCells.forEach((value, index) => {
+        const td = document.createElement('td');
+        if (index === 0 || index === 4) {
+            td.textContent = value;
+        } else {
+            td.className = 'number';
+            td.textContent = formatCurrency(value);
+        }
+        recurringRow.appendChild(td);
+    });
+    tbody.appendChild(recurringRow);
+    
+    // Create Total row
+    const totalRow = document.createElement('tr');
+    totalRow.style.fontWeight = 'bold';
+    totalRow.style.backgroundColor = '#e3f2fd';
+    
+    const totalCells = [
+        'Total',
+        thubTotals.total_funds_released || 0,
+        thubTotals.total_expenditure || 0,
+        thubTotals.balance || 0,
+        ''
+    ];
+    
+    totalCells.forEach((value, index) => {
+        const td = document.createElement('td');
+        if (index === 0 || index === 4) {
+            td.textContent = value;
+        } else {
+            td.className = 'number';
+            td.textContent = formatCurrency(value);
+        }
+        totalRow.appendChild(td);
+    });
+    window.thubTotalsData = thubTotals;
+    window.thubTotalsToDate = toDate;
+}
+
+// Download T-Hub Totals Table
+function downloadTHubTotalsTable(format = 'excel') {
+    const totals = window.thubTotalsData;
+    const toDate = window.thubTotalsToDate || 'DD/MM/YYYY';
+    
+    if (!totals) {
+        showAlert('No T-Hub totals data available to download', 'error');
+        return;
+    }
+    
+    if (format === 'excel') {
+        downloadTHubTotalsExcel(totals, toDate);
+    } else if (format === 'pdf') {
+        downloadTHubTotalsPDF(totals, toDate);
+    } else if (format === 'word') {
+        downloadTHubTotalsWord(totals, toDate);
+    }
+}
+
+// Download T-Hub Totals as Excel
+function downloadTHubTotalsExcel(totals, toDate) {
+    // Create CSV content with Sanctioned Head column
+    const csv = `Sanctioned Head (I),Total Funds Released (II),Total Expenditure (III),Balance as on (${toDate}) (VI = II - III)
+Recurring,${totals.total_funds_released},${totals.total_expenditure},${totals.balance}
+Total,${totals.total_funds_released},${totals.total_expenditure},${totals.balance}`;
+    
+    // Create Excel file using CSV
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'T-Hub_Expenditure_Totals.xlsx');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showAlert('T-Hub totals downloaded successfully as Excel!', 'success');
+}
+
+// Download T-Hub Totals as CSV
+function downloadTHubTotalsCSV(totals, toDate) {
+    const csv = `Sanctioned Head (I),Total Funds Released (II),Total Expenditure (III),Balance as on (${toDate}) (VI = II - III)
+Recurring,${totals.total_funds_released},${totals.total_expenditure},${totals.balance}
+Total,${totals.total_funds_released},${totals.total_expenditure},${totals.balance}`;
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'T-Hub_Expenditure_Totals.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showAlert('T-Hub totals downloaded successfully as CSV!', 'success');
+}
+
+// Download T-Hub Totals as PDF
+function downloadTHubTotalsPDF(totals, toDate) {
+    // This will be similar to TG PDF download
+    const docContent = `
+    <html>
+    <head>
+        <title>T-Hub Expenditure Totals</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 40px; }
+            h1 { color: #0066CC; }
+            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+            th, td { border: 1px solid #CCCCCC; padding: 12px; text-align: right; }
+            th { background-color: #FFFFFF; font-weight: bold; }
+            td:first-child, th:first-child { text-align: left; }
+        </style>
+    </head>
+    <body>
+        <h1>T-Hub - Expenditure Totals</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>Sanctioned Head (I)</th>
+                    <th>Total Funds Released (II)</th>
+                    <th>Total Expenditure (III)</th>
+                    <th>Balance as on (${toDate}) (VI = II - III)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Recurring</td>
+                    <td>${formatCurrency(totals.total_funds_released)}</td>
+                    <td>${formatCurrency(totals.total_expenditure)}</td>
+                    <td>${formatCurrency(totals.balance)}</td>
+                </tr>
+                <tr style="font-weight: bold; background-color: #e3f2fd;">
+                    <td>Total</td>
+                    <td>${formatCurrency(totals.total_funds_released)}</td>
+                    <td>${formatCurrency(totals.total_expenditure)}</td>
+                    <td>${formatCurrency(totals.balance)}</td>
+                </tr>
+            </tbody>
+        </table>
+    </body>
+    </html>
+    `;
+    
+    const newWindow = window.open('', 'Print-Window');
+    newWindow.document.open();
+    newWindow.document.write(docContent);
+    newWindow.document.close();
+    setTimeout(() => {
+        newWindow.print();
+        newWindow.close();
+    }, 250);
+    
+    showAlert('T-Hub totals PDF prepared for printing!', 'success');
+}
+
+// Download T-Hub Totals as Word
+function downloadTHubTotalsWord(totals, toDate) {
+    // For simplicity, fallback to CSV format
+    downloadTHubTotalsCSV(totals, toDate);
+}
+
+// Download TG PDF
+async function downloadTGPDF(data, toDate) {
+    try {
+        const response = await fetch('/download-tg-pdf', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tg: data.TG,
+                total_funds_released: data.Total_Funds_Released,
+                total_expenditure: data.Total_Expenditure,
+                balance: data.Balance,
+                to_date: toDate
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to generate PDF');
+        }
+        
+        // Get the PDF blob
+        const blob = await response.blob();
+        
+        // Create a temporary URL for the blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create a temporary anchor element and click it
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${data.TG}_expenditure_summary.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the URL
+        window.URL.revokeObjectURL(url);
+        
+        showAlert(`${data.TG} PDF downloaded successfully!`, 'success');
+    } catch (error) {
+        console.error('Error downloading PDF:', error);
+        showAlert('Error downloading PDF: ' + error.message, 'error');
+    }
+}
+
+// Download TG Detailed Table as CSV
+function downloadTGDetailedTable(tgName, tableData, toDate) {
+    if (!tableData || tableData.length === 0) {
+        showAlert('No data available to download', 'error');
+        return;
+    }
+    
+    const headers = ['Sanctioned Head', 'Total Funds Released', 'Total Expenditure', 'Balance as on (DD/MM/YYYY)', 'Remarks (if any)'];
+    
+    let csv = headers.join(',') + '\n';
+    
+    tableData.forEach(row => {
+        const values = [
+            row.sanctioned_head || '',
+            row.total_funds_released || '',
+            row.total_expenditure || '',
+            row.balance || '',
+            row.remarks || ''
+        ];
+        csv += values.join(',') + '\n';
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${tgName}_detailed_table.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showAlert(`${tgName} detailed table downloaded successfully!`, 'success');
+}
+
+// Download All TG Detailed Tables Combined as one document
+function downloadAllTGTables() {
+    if (!allTGDetailedData || allTGDetailedData.length === 0) {
+        showAlert('No TG data available to download', 'error');
+        return;
+    }
+    
+    // Show format selection dialog
+    showFormatSelectionDialog();
+}
+
+// Show format selection dialog
+function showFormatSelectionDialog(tableType = 'tg') {
+    // Create modal dialog
+    const modal = document.createElement('div');
+    modal.id = 'formatModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    `;
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        max-width: 400px;
+        text-align: center;
+    `;
+    
+    const title = document.createElement('h3');
+    title.textContent = 'Select Download Format';
+    title.style.marginBottom = '20px';
+    title.style.color = '#212529';
+    
+    const description = document.createElement('p');
+    description.textContent = `Choose the format you want to download the ${tableType === 'thub' ? 'T-Hub' : 'TG'} tables:`;
+    description.style.marginBottom = '20px';
+    description.style.color = '#495057';
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '10px';
+    buttonContainer.style.flexDirection = 'column';
+    
+    const formats = [
+        { name: 'Excel', icon: '📊', action: 'excel' },
+        { name: 'PDF', icon: '📄', action: 'pdf' },
+        { name: 'Word', icon: '📃', action: 'word' }
+    ];
+    
+    formats.forEach(format => {
+        const btn = document.createElement('button');
+        btn.textContent = `${format.icon} Download as ${format.name}`;
+        btn.style.cssText = `
+            padding: 12px 20px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        `;
+        btn.onmouseover = () => btn.style.background = '#004d99';
+        btn.onmouseout = () => btn.style.background = '#0066cc';
+        btn.onclick = () => {
+            if (tableType === 'thub') {
+                downloadTHubTablesInFormat(format.action);
+            } else {
+                downloadTGTablesInFormat(format.action);
+            }
+            modal.remove();
+        };
+        buttonContainer.appendChild(btn);
+    });
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = `
+        padding: 12px 20px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+    `;
+    cancelBtn.onmouseover = () => cancelBtn.style.background = '#5a6268';
+    cancelBtn.onmouseout = () => cancelBtn.style.background = '#6c757d';
+    cancelBtn.onclick = () => modal.remove();
+    buttonContainer.appendChild(cancelBtn);
+    
+    modalContent.appendChild(title);
+    modalContent.appendChild(description);
+    modalContent.appendChild(buttonContainer);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+}
+
+// Show format selection dialog for All Documents
+function showAllDocumentsFormatSelectionDialog() {
+    // Create modal dialog
+    const modal = document.createElement('div');
+    modal.id = 'allDocumentsFormatModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    `;
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        max-width: 400px;
+        text-align: center;
+    `;
+    
+    const title = document.createElement('h3');
+    title.textContent = 'Select Download Format';
+    title.style.marginBottom = '20px';
+    title.style.color = '#212529';
+    
+    const description = document.createElement('p');
+    description.textContent = 'Choose the format to download all document tables:';
+    description.style.marginBottom = '20px';
+    description.style.color = '#495057';
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '10px';
+    buttonContainer.style.flexDirection = 'column';
+    
+    const formats = [
+        { name: 'Excel', icon: '📊', action: 'excel' },
+        { name: 'PDF', icon: '📄', action: 'pdf' },
+        { name: 'Word', icon: '📃', action: 'word' }
+    ];
+    
+    formats.forEach(format => {
+        const btn = document.createElement('button');
+        btn.textContent = `${format.icon} Download as ${format.name}`;
+        btn.style.cssText = `
+            padding: 12px 20px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        `;
+        btn.onmouseover = () => btn.style.background = '#004d99';
+        btn.onmouseout = () => btn.style.background = '#0066cc';
+        btn.onclick = () => {
+            downloadAllDocuments(format.action);
+            modal.remove();
+        };
+        buttonContainer.appendChild(btn);
+    });
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = `
+        padding: 12px 20px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+    `;
+    cancelBtn.onmouseover = () => cancelBtn.style.background = '#5a6268';
+    cancelBtn.onmouseout = () => cancelBtn.style.background = '#6c757d';
+    cancelBtn.onclick = () => modal.remove();
+    buttonContainer.appendChild(cancelBtn);
+    
+    modalContent.appendChild(title);
+    modalContent.appendChild(description);
+    modalContent.appendChild(buttonContainer);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+}
+
+// Download All Documents function
+async function downloadAllDocuments(format) {
+    try {
+        // Prepare the data from the document view tables
+        const thubTgsData = window.thubTgsComparisonData || {};
+        const thubTotalsData = window.thubTotalsData || {};
+        
+        // Debug logging
+        console.log('DEBUG: Full window object check for thubTgsComparisonData:', window.thubTgsComparisonData);
+        console.log('DEBUG: thubTgsData:', thubTgsData);
+        console.log('DEBUG: thubTotalsData:', thubTotalsData);
+        
+        // If thubTgsData is empty, try to get from the displayed table
+        if (!thubTgsData || Object.keys(thubTgsData).length === 0) {
+            console.log('WARNING: thubTgsComparisonData is empty! Trying to extract from frontend table...');
+        }
+        
+        // Collect TG details from the displayed tables
+        const tgDetailsData = [];
+        const tgSections = document.querySelectorAll('#tgDetailedTablesContainer > div');
+        
+        tgSections.forEach((section, index) => {
+            const title = section.querySelector('.tg-detailed-header span')?.textContent || `TG ${index + 1}`;
+            const table = section.querySelector('table');
+            
+            if (table) {
+                const columns = [];
+                const rows = [];
+                
+                // Extract headers
+                table.querySelectorAll('thead th').forEach(th => {
+                    columns.push(th.textContent);
+                });
+                
+                // Extract rows
+                table.querySelectorAll('tbody tr').forEach(tr => {
+                    const row = [];
+                    tr.querySelectorAll('td').forEach(td => {
+                        row.push(td.textContent);
+                    });
+                    if (row.length > 0) rows.push(row);
+                });
+                
+                if (columns.length > 0 && rows.length > 0) {
+                    tgDetailsData.push({
+                        title: title,
+                        columns: columns,
+                        rows: rows
+                    });
+                }
+            }
+        });
+        
+        const payload = {
+            format: format,
+            thubTgs: thubTgsData,
+            thubTotals: thubTotalsData,
+            tgDetails: tgDetailsData
+        };
+        
+        const response = await fetch('/download-all-documents', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Download failed');
+        }
+        
+        // Download the file
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `All_Document_Tables.${format === 'excel' ? 'xlsx' : format === 'pdf' ? 'pdf' : 'docx'}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        showAlert('File downloaded successfully!', 'success');
+    } catch (error) {
+        console.error('Error downloading all documents:', error);
+        showAlert(`Error downloading file: ${error.message}`, 'error');
+    }
+}
+
+// Show format selection dialog for T-Hub Totals
+function showTHubTotalsFormatDialog() {
+    const modal = document.createElement('div');
+    modal.id = 'thubTotalsFormatModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    `;
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        max-width: 400px;
+        text-align: center;
+    `;
+    
+    const title = document.createElement('h3');
+    title.textContent = 'Select Download Format';
+    title.style.marginBottom = '20px';
+    title.style.color = '#212529';
+    
+    const description = document.createElement('p');
+    description.textContent = 'Choose the format you want to download the T-Hub Expenditure Totals:';
+    description.style.marginBottom = '20px';
+    description.style.color = '#495057';
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '10px';
+    buttonContainer.style.flexDirection = 'column';
+    
+    const formats = [
+        { name: 'Excel', icon: '📊', action: 'excel' },
+        { name: 'PDF', icon: '📄', action: 'pdf' },
+        { name: 'Word', icon: '📃', action: 'word' }
+    ];
+    
+    formats.forEach(format => {
+        const btn = document.createElement('button');
+        btn.textContent = `${format.icon} Download as ${format.name}`;
+        btn.style.cssText = `
+            padding: 12px 20px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        `;
+        btn.onmouseover = () => btn.style.background = '#004d99';
+        btn.onmouseout = () => btn.style.background = '#0066cc';
+        btn.onclick = () => {
+            downloadTHubTotalsTable(format.action);
+            modal.remove();
+        };
+        buttonContainer.appendChild(btn);
+    });
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = `
+        padding: 12px 20px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+    `;
+    cancelBtn.onmouseover = () => cancelBtn.style.background = '#5a6268';
+    cancelBtn.onmouseout = () => cancelBtn.style.background = '#6c757d';
+    cancelBtn.onclick = () => modal.remove();
+    buttonContainer.appendChild(cancelBtn);
+    
+    modalContent.appendChild(title);
+    modalContent.appendChild(description);
+    modalContent.appendChild(buttonContainer);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+}
+
+// Download TG tables in selected format
+function downloadTGTablesInFormat(format) {
+    if (!allTGDetailedData || allTGDetailedData.length === 0) {
+        showAlert('No TG data available to download', 'error');
+        return;
+    }
+    
+    // Send request to backend with format
+    fetch('/download-tg-tables', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            format: format,
+            data: allTGDetailedData
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Download failed');
+        return response.blob();
+    })
+    .then(blob => {
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Set filename based on format
+        const filename = `All_TG_Detailed_Tables.${getFileExtension(format)}`;
+        link.download = filename;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert(`TG tables downloaded successfully as ${format.toUpperCase()}!`, 'success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error downloading file. Please try again.', 'error');
+    });
+}
+
+// Get file extension based on format
+function getFileExtension(format) {
+    const extensions = {
+        'excel': 'xlsx',
+        'pdf': 'pdf',
+        'word': 'docx'
+    };
+    return extensions[format] || 'xlsx';
+}
+
+// Download all T-Hub tables
+function downloadAllTHubTables() {
+    if (!allTHubData || allTHubData.length === 0) {
+        showAlert('No T-Hub data available to download', 'error');
+        return;
+    }
+    
+    // Show format selection dialog for T-Hub
+    showFormatSelectionDialog('thub');
+}
+
+// Download T-Hub tables in selected format
+function downloadTHubTablesInFormat(format) {
+    if (!allTHubData || allTHubData.length === 0) {
+        showAlert('No T-Hub data available to download', 'error');
+        return;
+    }
+    
+    // Send request to backend with format
+    fetch('/download-thub-tables', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            format: format,
+            data: allTHubData
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Download failed');
+        return response.blob();
+    })
+    .then(blob => {
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Set filename based on format
+        const filename = `All_T-Hub_Tables.${getFileExtension(format)}`;
+        link.download = filename;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert(`T-Hub tables downloaded successfully as ${format.toUpperCase()}!`, 'success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error downloading file. Please try again.', 'error');
+    });
+}
+
+// Download T-Hub Totals Table in selected format
+function downloadTHubTotalsTable(format) {
+    if (!window.thubTotalsData) {
+        showAlert('No T-Hub totals data available to download', 'error');
+        return;
+    }
+    
+    // Send request to backend with format
+    fetch('/download-thub-totals', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            format: format,
+            data: window.thubTotalsData,
+            toDate: window.thubTotalsToDate || ''
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Download failed');
+        return response.blob();
+    })
+    .then(blob => {
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Set filename based on format
+        const filename = `T-Hub_Expenditure_Totals.${getFileExtension(format)}`;
+        link.download = filename;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert(`T-Hub totals downloaded successfully as ${format.toUpperCase()}!`, 'success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error downloading file. Please try again.', 'error');
+    });
+}
+
+// Show format selection dialog for T-Hub & TGs Comparison
+function showThubTgsComparisonFormatDialog() {
+    const modal = document.createElement('div');
+    modal.id = 'thubTgsComparisonFormatModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+    `;
+    
+    const modalContent = document.createElement('div');
+    modalContent.style.cssText = `
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        max-width: 400px;
+        text-align: center;
+    `;
+    
+    const title = document.createElement('h3');
+    title.textContent = 'Select Download Format';
+    title.style.marginBottom = '20px';
+    title.style.color = '#212529';
+    
+    const description = document.createElement('p');
+    description.textContent = 'Choose the format you want to download the T-Hub & TGs Comparison:';
+    description.style.marginBottom = '20px';
+    description.style.color = '#495057';
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '10px';
+    buttonContainer.style.flexDirection = 'column';
+    
+    const formats = [
+        { name: 'Excel', icon: '📊', action: 'excel' },
+        { name: 'PDF', icon: '📄', action: 'pdf' },
+        { name: 'Word', icon: '📃', action: 'word' }
+    ];
+    
+    formats.forEach(format => {
+        const btn = document.createElement('button');
+        btn.textContent = `${format.icon} Download as ${format.name}`;
+        btn.style.cssText = `
+            padding: 12px 20px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        `;
+        btn.onmouseover = () => btn.style.background = '#004d99';
+        btn.onmouseout = () => btn.style.background = '#0066cc';
+        btn.onclick = () => {
+            downloadThubTgsComparison(format.action);
+            modal.remove();
+        };
+        buttonContainer.appendChild(btn);
+    });
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.cssText = `
+        padding: 12px 20px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+    `;
+    cancelBtn.onmouseover = () => cancelBtn.style.background = '#5a6268';
+    cancelBtn.onmouseout = () => cancelBtn.style.background = '#6c757d';
+    cancelBtn.onclick = () => modal.remove();
+    buttonContainer.appendChild(cancelBtn);
+    
+    modalContent.appendChild(title);
+    modalContent.appendChild(description);
+    modalContent.appendChild(buttonContainer);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+}
+
+// Download T-Hub & TGs Comparison Table in selected format
+function downloadThubTgsComparison(format) {
+    if (!thubTgsComparisonData) {
+        showAlert('No T-Hub & TGs comparison data available to download', 'error');
+        return;
+    }
+    
+    // Send request to backend with format
+    fetch('/download-thub-tgs-comparison', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            format: format,
+            data: thubTgsComparisonData
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Download failed');
+        return response.blob();
+    })
+    .then(blob => {
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Set filename based on format
+        const filename = `T-Hub_TGs_Comparison.${getFileExtension(format)}`;
+        link.download = filename;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert(`T-Hub & TGs comparison downloaded successfully as ${format.toUpperCase()}!`, 'success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error downloading file. Please try again.', 'error');
+    });
+}
+
+// Display T-Hub & TGs Comparison Table
+function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
+    const section = document.getElementById('thubTgsComparisonSection');
+    if (!section) return;
+    
+    // Debug: Log the input data
+    console.log('DEBUG displayTHubTgsComparison - thubSummaryData:', thubSummaryData);
+    console.log('DEBUG displayTHubTgsComparison - tgSummaryData:', tgSummaryData);
+    
+    // Show the section
+    section.style.display = 'block';
+    
+    const table = document.getElementById('thubTgsComparisonTable');
+    if (!table) return;
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    if (!thead || !tbody) return;
+    
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    
+    // Create header row
+    const headerRow = document.createElement('tr');
+    const headers = [
+        { main: 'T-Hub & TG', roman: '(I)' },
+        { main: 'Total Funds Released', roman: '(II)' },
+        { main: 'Total Expenditure', roman: '(III)' },
+        { main: `Balance as on (${toDate || 'DD/MM/YYYY'})`, roman: '(IV = II - III)' },
+        { main: 'Remarks', roman: '(if any)' }
+    ];
+    
+    headers.forEach(headerObj => {
+        const th = document.createElement('th');
+        th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    
+    // Get T-Hub totals
+    let thubTotalFundsReleased = 0;
+    let thubTotalExpenditure = 0;
+    let thubBalance = 0;
+    
+    if (thubSummaryData && thubSummaryData.length > 0) {
+        thubSummaryData.forEach(row => {
+            // Check if row is NOT a Grand Total (by checking Hub field or Assignment Sanction Number)
+            const isGrandTotal = row['Hub'] === 'Grand Total';
+            if (!isGrandTotal) {
+                thubTotalFundsReleased += parseFloat(row['Expenditure_Limit']) || 0;
+                thubTotalExpenditure += parseFloat(row['Expenditure_Spent']) || 0;
+                thubBalance += parseFloat(row['Balance']) || 0;
+            }
+        });
+    }
+    
+    console.log('DEBUG: Calculated thubTotalFundsReleased:', thubTotalFundsReleased, 'thubTotalExpenditure:', thubTotalExpenditure, 'thubBalance:', thubBalance);
+    
+    // Get TGs totals - sum all TG rows (they don't have Grand Total row)
+    let tgsTotalFundsReleased = 0;
+    let tgsTotalExpenditure = 0;
+    let tgsBalance = 0;
+    
+    if (tgSummaryData && tgSummaryData.length > 0) {
+        tgSummaryData.forEach(row => {
+            // Skip Grand Total if it exists
+            const isGrandTotal = row['TG'] === 'Grand Total';
+            if (!isGrandTotal) {
+                // Try different column name patterns - check for Recurring or Non-Recurring
+                const fundLimit = parseFloat(row['Recurring - Expenditure Limit']) || parseFloat(row['Non-Recurring - Expenditure Limit']) || 0;
+                const fundSpent = parseFloat(row['Recurring - Expenditure Spent']) || parseFloat(row['Non-Recurring - Expenditure Spent']) || 0;
+                const balance = parseFloat(row['Recurring - Balance']) || parseFloat(row['Non-Recurring - Balance']) || 0;
+                
+                tgsTotalFundsReleased += fundLimit;
+                tgsTotalExpenditure += fundSpent;
+                tgsBalance += balance;
+            }
+        });
+    }
+    
+    console.log('DEBUG: Calculated tgsTotalFundsReleased:', tgsTotalFundsReleased, 'tgsTotalExpenditure:', tgsTotalExpenditure, 'tgsBalance:', tgsBalance);
+    
+    // Add T-Hub row
+    const thubRow = document.createElement('tr');
+    const thubCells = [
+        'T-Hub',
+        thubTotalFundsReleased,
+        thubTotalExpenditure,
+        thubBalance,
+        ''
+    ];
+    
+    thubCells.forEach((value, index) => {
+        const td = document.createElement('td');
+        if (index === 0 || index === 4) {
+            td.textContent = value;
+        } else {
+            td.className = 'number';
+            td.textContent = formatCurrency(value);
+        }
+        thubRow.appendChild(td);
+    });
+    tbody.appendChild(thubRow);
+    
+    // Add TGs row
+    const tgsRow = document.createElement('tr');
+    const tgsCells = [
+        'TGs',
+        tgsTotalFundsReleased,
+        tgsTotalExpenditure,
+        tgsBalance,
+        ''
+    ];
+    
+    tgsCells.forEach((value, index) => {
+        const td = document.createElement('td');
+        if (index === 0 || index === 4) {
+            td.textContent = value;
+        } else {
+            td.className = 'number';
+            td.textContent = formatCurrency(value);
+        }
+        tgsRow.appendChild(td);
+    });
+    tbody.appendChild(tgsRow);
+    
+    // Add Total row
+    const totalRow = document.createElement('tr');
+    totalRow.style.fontWeight = 'bold';
+    totalRow.style.backgroundColor = '#e3f2fd';
+    
+    const totalCells = [
+        'Total',
+        thubTotalFundsReleased + tgsTotalFundsReleased,
+        thubTotalExpenditure + tgsTotalExpenditure,
+        thubBalance + tgsBalance,
+        ''
+    ];
+    
+    totalCells.forEach((value, index) => {
+        const td = document.createElement('td');
+        if (index === 0 || index === 4) {
+            td.textContent = value;
+        } else {
+            td.className = 'number';
+            td.textContent = formatCurrency(value);
+        }
+        totalRow.appendChild(td);
+    });
+    tbody.appendChild(totalRow);
+    
+    // Store data globally for download
+    window.thubTgsComparisonData = {
+        toDate: toDate,
+        thubFundsReleased: thubTotalFundsReleased,
+        thubExpenditure: thubTotalExpenditure,
+        thubBalance: thubBalance,
+        tgsFundsReleased: tgsTotalFundsReleased,
+        tgsExpenditure: tgsTotalExpenditure,
+        tgsBalance: tgsBalance,
+        totalFundsReleased: (thubTotalFundsReleased + tgsTotalFundsReleased),
+        totalExpenditure: (thubTotalExpenditure + tgsTotalExpenditure),
+        totalBalance: (thubBalance + tgsBalance),
+        thubData: thubSummaryData && thubSummaryData.length > 0,
+        tgsData: tgSummaryData && tgSummaryData.length > 0
+    };
+    
+    console.log('DEBUG: thubTgsComparisonData stored:', window.thubTgsComparisonData);
+}
+
+// Display TG Detailed Tables (recurring data summary by TG)
+function displayTGDetailedTables(tgSummaryData, toDate) {
+    const container = document.getElementById('tgDetailedTablesContainer');
+    if (!container) return;
+    
+    // Mapping of TG codes to institution names
+    const tgNameMapping = {
+        'TG1': 'QuILA',
+        'TG2': 'PIPETA',
+        'TG3': 'TAHQEECAT',
+        'TG4': 'QuEPRAN'
+    };
+    
+    container.innerHTML = '';
+    allTGDetailedData = []; // Reset the global data
+    
+    if (!tgSummaryData || tgSummaryData.length === 0) return;
+    
+    // Filter out Grand Total row
+    const tgData = tgSummaryData.filter(row => row['TG'] !== 'Grand Total');
+    
+    // Process each TG
+    tgData.forEach(row => {
+        const tgName = row['TG'];
+        const institutionName = tgNameMapping[tgName] || 'Unknown';
+        
+        const section = document.createElement('div');
+        section.className = 'tg-detailed-section';
+        
+        // Header without individual download button
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'tg-detailed-header';
+        
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = `${tgName} - ${institutionName}`;
+        
+        headerDiv.appendChild(titleSpan);
+        section.appendChild(headerDiv);
+        
+        // Store data for combined download
+        const tableData = {
+            tgName: tgName,
+            institutionName: institutionName,
+            toDate: toDate,
+            rows: [
+                {
+                    sanctioned_head: 'Recurring',
+                    total_funds_released: row['Recurring - Expenditure Limit'],
+                    total_expenditure: row['Recurring - Expenditure Spent'],
+                    balance_date: toDate,
+                    balance: row['Recurring - Balance'],
+                    remarks: ''
+                },
+                {
+                    sanctioned_head: 'Total',
+                    total_funds_released: row['Recurring - Expenditure Limit'],
+                    total_expenditure: row['Recurring - Expenditure Spent'],
+                    balance_date: toDate,
+                    balance: row['Recurring - Balance'],
+                    remarks: ''
+                }
+            ]
+        };
+        
+        allTGDetailedData.push(tableData);
+        
+        // Create table
+        const table = document.createElement('table');
+        table.className = 'tg-detail-table';
+        
+        // Table header
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+const headers = [
+  { main: "Sanctioned Head", roman: "(I)" },
+  { main: "Total Funds Released", roman: "(II)" },
+  { main: "Total Expenditure", roman: "(III)" },
+  { main: `Balance as on (${toDate})`, roman: "(IV = II - III)" },
+  { main: "Remarks", roman: "(if any)" }
+];
+        
+        headers.forEach(headerObj => {
+            const th = document.createElement('th');
+            th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+         table.appendChild(thead);
+
+        
+        // Table body - Recurring row
+        const tbody = document.createElement('tbody');
+        const recurringRow = document.createElement('tr');
+        
+        // Get values from tg_summary_table
+        const recurringData = [
+            'Recurring',
+            row['Recurring - Expenditure Limit'] || '',
+            row['Recurring - Expenditure Spent'] || '',
+            row['Recurring - Balance'] || '',
+            ''
+        ];
+        
+        recurringData.forEach((value, index) => {
+            const td = document.createElement('td');
+            if (index > 0 && index < 4) {
+                td.className = 'number';
+                td.textContent = formatCurrency(value);
+            } else {
+                td.textContent = value;
+            }
+            recurringRow.appendChild(td);
+        });
+        tbody.appendChild(recurringRow);
+        
+        // Total row
+        const totalRow = document.createElement('tr');
+        totalRow.style.fontWeight = 'bold';
+        totalRow.style.backgroundColor = '#e3f2fd';
+        
+        const totalData = [
+            'Total',
+            row['Recurring - Expenditure Limit'] || '',
+            row['Recurring - Expenditure Spent'] || '',
+            row['Recurring - Balance'] || '',
+            ''
+        ];
+        
+        totalData.forEach((value, index) => {
+            const td = document.createElement('td');
+            if (index > 0 && index < 4) {
+                td.className = 'number';
+                td.textContent = formatCurrency(value);
+            } else {
+                td.textContent = value;
+            }
+            totalRow.appendChild(td);
+        });
+        tbody.appendChild(totalRow);
+        
+        table.appendChild(tbody);
+        section.appendChild(table);
+        
+        container.appendChild(section);
+    });
+}
+
+// View switching - Document View and Excel View
+const viewBtns = document.querySelectorAll('.view-btn');
+viewBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const view = btn.getAttribute('data-view');
+        
+        // Update active view button
+        viewBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // Show/hide view sections
+        const documentView = document.getElementById('documentView');
+        const excelView = document.getElementById('excelView');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadAllDocumentBtn = document.getElementById('downloadAllDocumentBtn');
+        
+        if (view === 'document') {
+            documentView.classList.add('active');
+            excelView.classList.remove('active');
+            // Show download all button in document view, hide excel download button
+            if (downloadBtn) downloadBtn.style.display = 'none';
+            if (downloadAllDocumentBtn) downloadAllDocumentBtn.style.display = 'block';
+            // Switch to tgsummary tab in document view
+            setTimeout(() => switchToTab('tgsummary'), 50);
+        } else {
+            excelView.classList.add('active');
+            documentView.classList.remove('active');
+            // Show excel download button, hide document download all button
+            if (downloadBtn) downloadBtn.style.display = 'block';
+            if (downloadAllDocumentBtn) downloadAllDocumentBtn.style.display = 'none';
+            // Switch to split tab in excel view
+            setTimeout(() => switchToTab('split'), 50);
+        }
+    });
+});
+
+// Tab switching
+function switchToTab(tabName) {
+    // Get all tab buttons and contents currently visible
+    const allTabButtons = document.querySelectorAll('.tab-btn');
+    const allTabContents = document.querySelectorAll('.tab-content');
+    
+    // Remove active class from all buttons and contents
+    allTabButtons.forEach(btn => btn.classList.remove('active'));
+    allTabContents.forEach(content => content.classList.remove('active'));
+    
+    // Add active class to selected button and content
+    const targetButton = document.querySelector(`[data-tab="${tabName}"]`);
+    const targetContent = document.getElementById(tabName);
+    
+    if (targetButton) targetButton.classList.add('active');
+    if (targetContent) targetContent.classList.add('active');
+}
+
+// Display TG-Wise Summary
+function displayTGWiseSummary(tgWiseData, toDate) {
+    const container = document.getElementById('tgWiseContainer');
+    container.innerHTML = '';
+    
+    // Sort TG keys
+    const sortedTGs = Object.keys(tgWiseData).sort();
+    
+    sortedTGs.forEach(tg => {
+        const data = tgWiseData[tg];
+        
+        const template = document.createElement('div');
+        template.className = 'tg-template';
+        
+        const header = document.createElement('div');
+        header.className = 'tg-template-header';
+        header.textContent = data.TG;
+        template.appendChild(header);
+        
+        // Date row
+        if (toDate) {
+            const dateRow = document.createElement('div');
+            dateRow.className = 'tg-template-date';
+            dateRow.textContent = `Balance as on: ${toDate}`;
+            template.appendChild(dateRow);
+        }
+        
+        // Total Funds Released
+        const fundsRow = document.createElement('div');
+        fundsRow.className = 'tg-template-row';
+        fundsRow.innerHTML = `
+            <span class="tg-template-label">Total Funds Released</span>
+            <span class="tg-template-value">${formatCurrency(data.Total_Funds_Released)}</span>
+        `;
+        template.appendChild(fundsRow);
+        
+        // Total Expenditure
+        const expenditureRow = document.createElement('div');
+        expenditureRow.className = 'tg-template-row';
+        expenditureRow.innerHTML = `
+            <span class="tg-template-label">Total Expenditure</span>
+            <span class="tg-template-value">${formatCurrency(data.Total_Expenditure)}</span>
+        `;
+        template.appendChild(expenditureRow);
+        
+        // Balance
+        const balanceRow = document.createElement('div');
+        balanceRow.className = 'tg-template-row';
+        balanceRow.innerHTML = `
+            <span class="tg-template-label">Balance</span>
+            <span class="tg-template-value" style="${data.Balance > 0 ? 'color: #00a86b;' : 'color: #dc3545;'}">${formatCurrency(data.Balance)}</span>
+        `;
+        template.appendChild(balanceRow);
+        
+        // Download button
+        const downloadBtn = document.createElement('button');
+        downloadBtn.className = 'tg-download-btn';
+        downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download PDF';
+        downloadBtn.addEventListener('click', async () => {
+            await downloadTGPDF(data, toDate);
+        });
+        template.appendChild(downloadBtn);
+        
+        container.appendChild(template);
+    });
+}
+
+const tabButtons = document.querySelectorAll('.tab-btn');
+tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const targetTab = button.dataset.tab;
+        
+        // Get all tab buttons and contents
+        const allTabButtons = document.querySelectorAll('.tab-btn');
+        const allTabContents = document.querySelectorAll('.tab-content');
+        
+        // Remove active class from all tabs
+        allTabButtons.forEach(btn => btn.classList.remove('active'));
+        allTabContents.forEach(content => content.classList.remove('active'));
+        
+        // Add active class to clicked tab
+        button.classList.add('active');
+        document.getElementById(targetTab).classList.add('active');
+    });
+});
+
+// Download button
+downloadBtn.addEventListener('click', () => {
+    window.location.href = '/download';
+    showAlert('Downloading file...', 'success');
+});
+
+// Download All Document button (for Document View)
+const downloadAllDocumentBtn = document.getElementById('downloadAllDocumentBtn');
+if (downloadAllDocumentBtn) {
+    downloadAllDocumentBtn.addEventListener('click', () => {
+        showAllDocumentsFormatSelectionDialog();
+    });
+}

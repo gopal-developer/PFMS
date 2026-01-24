@@ -1,0 +1,226 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PFMS Summary Report</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+   
+</head>
+<body>
+    <!-- Top Header -->
+    <div class="top-header">
+        <div class="header-container">
+            <img src="https://www.samgnya.in/files/WhatsApp%20Image%202025-03-20%20at%2010.31.22%20AM.jpeg" class="log" alt="Logo">
+            <div class="header-text">
+                <h1>IITM CDOT Samgnya Technologies Foundation</h1>
+                <p class="tagline">An initiative under the National Quantum Mission of DST</p>
+            </div>
+            <img src="https://www.samgnya.in/files/NQM_Logo.png" class="log" alt="NQM Logo">
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Page Title -->
+        <div class="page-title">
+            <h2>Upload the downloaded file from PFMS to process institute-wise expenditure data.</h2>
+            <p class="subtitle">This site generates detailed reports showing Recurring and Non-Recurring limits assigned, amount spent, and balance — both institute-wise and overall — provided in separate Excel sheets.
+</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <div class="upload-card">
+                <div class="upload-header">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <h3>Upload Excel File</h3>
+                </div>
+                
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-file-excel upload-icon"></i>
+                    <p class="upload-text">Drag and drop your Excel file here</p>
+                    <p class="upload-subtext">or</p>
+                    <label for="fileInput" class="browse-btn">
+                        <i class="fas fa-folder-open"></i> Browse Files
+                    </label>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
+                    <p class="file-info">Supported: .xlsx, .xls (Max 16MB)</p>
+                </div>
+
+                <div class="selected-file" id="selectedFile" style="display: none;">
+                    <i class="fas fa-file-excel file-icon"></i>
+                    <div class="file-details">
+                        <span class="file-name" id="fileName"></span>
+                        <span class="file-size" id="fileSize"></span>
+                    </div>
+                    <button class="remove-btn" id="removeFile">
+                       ❌
+                    </button>
+                </div>
+
+                <p class="file-ready-msg" id="fileReadyMsg" style="display: none;">
+                    <i class="fas fa-arrow-down"></i> Click <strong>Generate</strong> to process your file
+                </p>
+
+                <button class="process-btn" id="processBtn" disabled>
+                    <i class="fas fa-cogs"></i> Generate Report
+                </button>
+
+                <div class="progress-container" id="progressContainer" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p class="progress-text" id="progressText">Processing...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="results-section" id="resultsSection" style="display: none;">
+            <div class="financial-year-info" id="financialYearInfo" style="display: none;">
+                <p class="financial-year-text"><strong>Financial Year :</strong> <span id="financialYearValue"></span></p>
+            </div>
+            <div class="metadata-info" id="metadataInfo" style="display: none;">
+                <div class="date-row">
+                    <div class="date-item">
+                        <p class="date-label"><strong>From Date :</strong> <span id="fromDateValue"></span></p>
+                    </div>
+                    <div class="date-item">
+                        <p class="date-label"><strong>To Date :</strong> <span id="toDateValue"></span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-header">
+                <h3><i class="fas fa-chart-line"></i> Processing Results</h3>
+                <button class="download-btn" id="downloadBtn" style="display: none;">
+                    <i class="fas fa-download"></i> Download Excel Report
+                </button>
+                <button class="download-btn" id="downloadAllDocumentBtn" style="display: none;">
+                    <i class="fas fa-download"></i> Download All
+                </button>
+            </div>
+
+            <!-- View Toggle -->
+            <div class="view-toggle" id="viewToggle">
+                <button class="view-btn active" data-view="document">
+                    <i class="fas fa-file-pdf"></i> Document View
+                </button>
+                <button class="view-btn" data-view="excel">
+                    <i class="fas fa-table"></i> Excel View
+                </button>
+            </div>
+
+            <!-- Document View Tabs -->
+            <div class="view-section active" id="documentView">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="tgsummary">
+                        <i class="fas fa-table"></i> TG-Wise Exp Rec vs Non-Rec
+                    </button>
+                </div>
+
+            <div class="tab-content active" id="tgsummary">
+                <!-- T-Hub & TGs Comparison Section -->
+                <div id="thubTgsComparisonSection" style="display: none;">
+                    <div class="tg-detailed-header">
+                        <span>Total Expenditure (T-Hub & TGs)</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="tg-detail-table" id="thubTgsComparisonTable">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- T-Hub Totals Section -->
+                <div id="thubTotalsSection" style="display: none;">
+                    <div class="tg-detailed-header">
+                        <span>T-Hub-Wise Expenditure Summary</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="tg-detail-table" id="thubTotalsTable">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TG-Wise Detailed Tables Section -->
+                <div id="tgDetailedTablesContainer"></div>
+            </div>
+            </div>
+
+            <!-- Excel View Tabs -->
+            <div class="view-section" id="excelView">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="split">
+                        <i class="fas fa-columns"></i> Institute-Wise Exp Rec vs Non-Rec
+                    </button>
+                    <button class="tab-btn" data-tab="tgexcel">
+                        <i class="fas fa-list"></i> TG-Wise Exp Rec vs Non-Rec
+                    </button>
+                    <button class="tab-btn" data-tab="thub">
+                        <i class="fas fa-warehouse"></i> T-Hub-Wise Exp Rec vs Non-Rec
+                    </button>
+                    <button class="tab-btn" data-tab="recurring">
+                        <i class="fas fa-chart-pie"></i> Overall Rec vs Non-Rec
+                    </button>
+                </div>
+
+                <div class="tab-content active" id="split">
+                    <div class="table-container">
+                        <table class="data-table" id="splitTable">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="tgexcel">
+                    <div class="table-container">
+                        <table class="data-table" id="tgSummaryTableExcel">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="thub">
+                    <div class="tab-header">
+                        <button class="btn btn-primary" onclick="downloadAllTHubTables()">Download All T-Hub Tables</button>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table" id="thubTable">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="tab-content" id="recurring">
+                    <div class="table-container">
+                        <table class="data-table" id="recurringTable">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert -->
+    <div class="alert" id="alert" style="display: none;">
+        <i class="fas fa-exclamation-circle"></i>
+        <span class="alert-message" id="alertMessage"></span>
+        <button class="alert-close" id="alertClose">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <script src="../static/js/script.js"></script>
+ 
+</body>
+</html>

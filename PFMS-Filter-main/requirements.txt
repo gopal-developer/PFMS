@@ -1,0 +1,8 @@
+flask
+pandas
+openpyxl
+xlsxwriter
+werkzeug
+gunicorn
+reportlab
+python-docx
