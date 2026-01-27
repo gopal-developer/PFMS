@@ -799,7 +799,7 @@
 
         /* TG Detailed Tables */
         .tg-detailed-section {
-            margin-bottom: 15px;
+            margin-bottom: 40px;
             margin-left: 0;
             margin-right: auto;
             border: 1px solid var(--border);
@@ -877,6 +877,18 @@
 
         .tg-detail-table td.number {
             text-align: left;
+        }
+
+        /* Spacing for T-Hub comparison and totals sections */
+        #thubTgsComparisonSection,
+        #thubTgsComparisonSectionNonRecurring,
+        #thubTotalsSection,
+        #thubTotalsSectionNonRecurring {
+            margin-bottom: 40px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px;
+            background: white;
         }
 
         /* Responsive */

@@ -117,6 +117,9 @@
                     <button class="tab-btn active" data-tab="tgsummary">
                         <i class="fas fa-table"></i> TG-Wise Exp Recurring
                     </button>
+                    <button class="tab-btn" data-tab="tgsummarynonrecurring">
+                        <i class="fas fa-table"></i> TG-Wise Exp Non-Recurring
+                    </button>
                 </div>
 
             <div class="tab-content active" id="tgsummary">
@@ -148,6 +151,37 @@
 
                 <!-- TG-Wise Detailed Tables Section -->
                 <div id="tgDetailedTablesContainer"></div>
+            </div>
+
+            <div class="tab-content" id="tgsummarynonrecurring">
+                <!-- T-Hub & TGs Comparison Section (Non-Recurring) -->
+                <div id="thubTgsComparisonSectionNonRecurring" style="display: none;">
+                    <div class="tg-detailed-header">
+                        <span>Total Expenditure (T-Hub & TGs)</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="tg-detail-table" id="thubTgsComparisonTableNonRecurring">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- T-Hub Totals Section (Non-Recurring) -->
+                <div id="thubTotalsSectionNonRecurring" style="display: none;">
+                    <div class="tg-detailed-header">
+                        <span>T-Hub-Wise Expenditure Summary</span>
+                    </div>
+                    <div class="table-container">
+                        <table class="tg-detail-table" id="thubTotalsTableNonRecurring">
+                            <thead></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TG-Wise Detailed Tables Section (Non-Recurring) -->
+                <div id="tgDetailedTablesContainerNonRecurring"></div>
             </div>
             </div>
 

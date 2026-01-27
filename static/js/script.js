@@ -225,6 +225,12 @@ async function processFile() {
 let currentTGSummaryData = [];
 let allTGDetailedData = []; // Store all TG detailed data for combined download
 let allTHubData = []; // Store all T-Hub data for combined download
+let allTGDetailedDataNonRecurring = []; // Store all TG non-recurring detailed data
+let allTHubDataNonRecurring = []; // Store all T-Hub non-recurring data
+let allComparisonTableData = []; // Store T-Hub & TGs Comparison table data
+let allComparisonTableDataNonRecurring = []; // Store T-Hub & TGs Comparison table data for non-recurring
+let allThubSummaryData = []; // Store T-Hub-Wise summary data
+let allThubSummaryDataNonRecurring = []; // Store T-Hub-Wise summary data for non-recurring
 
 // Download TG Summary Table as CSV
 function downloadTGSummary(data) {
@@ -338,6 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadAllTHubTables();
         });
     }
+
     
     const downloadTHubSummaryBtn = document.getElementById('downloadTHubSummaryBtn');
     if (downloadTHubSummaryBtn) {
@@ -416,11 +423,17 @@ function displayResults(preview) {
         // Also populate the Excel View TG Summary table
         createTable('tgSummaryTableExcel', preview.tg_summary_table, tgSummaryColumns);
         
-        // Display T-Hub & TGs comparison table
+        // Display T-Hub & TGs comparison table for RECURRING
         displayTHubTgsComparison(preview.tg_summary_table, preview.thub_summary, preview.to_date);
         
-        // Display TG detailed tables below the summary
+        // Display TG detailed tables for RECURRING
         displayTGDetailedTables(preview.tg_summary_table, preview.to_date);
+        
+        // Display T-Hub & TGs comparison table for NON-RECURRING
+        displayTHubTgsComparisonNonRecurring(preview.tg_summary_table, preview.thub_summary, preview.to_date);
+        
+        // Display TG detailed tables for NON-RECURRING
+        displayTGDetailedTablesNonRecurring(preview.tg_summary_table, preview.to_date);
     }
 
     // T-Hub table
@@ -443,6 +456,8 @@ function displayResults(preview) {
     // T-Hub Totals table (displayed above TG tables)
     if (preview.thub_totals) {
         displayTHubTotalsTable(preview.thub_totals, preview.to_date);
+        // Also display Non-Recurring T-Hub Totals - pass thub_summary array instead
+        displayTHubTotalsTableNonRecurring(preview.thub_summary, preview.to_date);
     }
 
     // Display TG-Wise data - removed as TG-Wise Exp Rec tab is no longer used
@@ -607,8 +622,31 @@ function displayTHubTotalsTable(thubTotals, toDate) {
         }
         totalRow.appendChild(td);
     });
+    tbody.appendChild(totalRow);
+    
     window.thubTotalsData = thubTotals;
     window.thubTotalsToDate = toDate;
+    
+    // Store in global variable for downloads
+    allThubSummaryData = [{
+        sheetName: 'T-Hub-Wise Expenditure Summary',
+        rows: [
+            {
+                sanctioned_head: 'Recurring',
+                total_funds_released: thubTotals.total_funds_released || 0,
+                total_expenditure: thubTotals.total_expenditure || 0,
+                balance: thubTotals.balance || 0,
+                remarks: ''
+            },
+            {
+                sanctioned_head: 'Total',
+                total_funds_released: thubTotals.total_funds_released || 0,
+                total_expenditure: thubTotals.total_expenditure || 0,
+                balance: thubTotals.balance || 0,
+                remarks: ''
+            }
+        ]
+    }];
 }
 
 // Download T-Hub Totals Table
@@ -816,14 +854,34 @@ function downloadTGDetailedTable(tgName, tableData, toDate) {
 
 // Download All TG Detailed Tables Combined as one document
 function downloadAllTGTables() {
-    if (!allTGDetailedData || allTGDetailedData.length === 0) {
-        showAlert('No TG data available to download', 'error');
-        return;
-    }
+    // Check which tab button is active to determine which sheet to download
+    const allTabButtons = document.querySelectorAll('.tab-btn');
+    let isNonRecurringActive = false;
     
-    // Show format selection dialog
-    showFormatSelectionDialog();
+    // Find the active tab button and check if it's the Non-Recurring tab
+    allTabButtons.forEach(btn => {
+        if (btn.classList.contains('active') && btn.dataset.tab === 'tgsummarynonrecurring') {
+            isNonRecurringActive = true;
+        }
+    });
+    
+    if (isNonRecurringActive) {
+        // Download Non-Recurring data
+        if (!allTGDetailedDataNonRecurring || allTGDetailedDataNonRecurring.length === 0) {
+            showAlert('No TG Non-Recurring data available to download', 'error');
+            return;
+        }
+        showFormatSelectionDialog('tg-nonrecurring');
+    } else {
+        // Download Recurring data (default)
+        if (!allTGDetailedData || allTGDetailedData.length === 0) {
+            showAlert('No TG Recurring data available to download', 'error');
+            return;
+        }
+        showFormatSelectionDialog('tg-recurring');
+    }
 }
+
 
 // Show format selection dialog
 function showFormatSelectionDialog(tableType = 'tg') {
@@ -859,7 +917,18 @@ function showFormatSelectionDialog(tableType = 'tg') {
     title.style.color = '#212529';
     
     const description = document.createElement('p');
-    description.textContent = `Choose the format you want to download the ${tableType === 'thub' ? 'T-Hub' : 'TG'} tables:`;
+    let descText = 'Choose the format you want to download the ';
+    if (tableType === 'thub') {
+        descText += 'T-Hub';
+    } else if (tableType === 'tg-recurring') {
+        descText += 'TG-Wise Exp Recurring';
+    } else if (tableType === 'tg-nonrecurring') {
+        descText += 'TG-Wise Exp Non-Recurring';
+    } else {
+        descText += 'TG';
+    }
+    descText += ' tables:';
+    description.textContent = descText;
     description.style.marginBottom = '20px';
     description.style.color = '#495057';
     
@@ -893,6 +962,10 @@ function showFormatSelectionDialog(tableType = 'tg') {
         btn.onclick = () => {
             if (tableType === 'thub') {
                 downloadTHubTablesInFormat(format.action);
+            } else if (tableType === 'tg-recurring') {
+                downloadTGRecurringInFormat(format.action);
+            } else if (tableType === 'tg-nonrecurring') {
+                downloadTGNonRecurringInFormat(format.action);
             } else {
                 downloadTGTablesInFormat(format.action);
             }
@@ -1267,6 +1340,110 @@ function getFileExtension(format) {
     return extensions[format] || 'xlsx';
 }
 
+// Download TG-Wise Exp Recurring in specific format
+function downloadTGRecurringInFormat(format) {
+    if (!allTGDetailedData || allTGDetailedData.length === 0) {
+        showAlert('No TG Recurring data available to download', 'error');
+        return;
+    }
+    
+    // Prepare all table data to send
+    const downloadData = {
+        comparisonTable: allComparisonTableData,
+        thubSummaryTable: allThubSummaryData,
+        tgDetailedTables: allTGDetailedData
+    };
+    
+    // Send request to backend with format
+    fetch('/download-tg-tables', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            format: format,
+            data: downloadData,
+            sheetType: 'recurring'
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Download failed');
+        return response.blob();
+    })
+    .then(blob => {
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Set filename based on format
+        const filename = `TG-Wise_Exp_Recurring.${getFileExtension(format)}`;
+        link.download = filename;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert(`TG-Wise Exp Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error downloading file. Please try again.', 'error');
+    });
+}
+
+// Download TG-Wise Exp Non-Recurring in specific format
+function downloadTGNonRecurringInFormat(format) {
+    if (!allTGDetailedDataNonRecurring || allTGDetailedDataNonRecurring.length === 0) {
+        showAlert('No TG Non-Recurring data available to download', 'error');
+        return;
+    }
+    
+    // Prepare all table data to send
+    const downloadData = {
+        comparisonTable: allComparisonTableDataNonRecurring,
+        thubSummaryTable: allThubSummaryDataNonRecurring,
+        tgDetailedTables: allTGDetailedDataNonRecurring
+    };
+    
+    // Send request to backend with format
+    fetch('/download-tg-tables', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            format: format,
+            data: downloadData,
+            sheetType: 'nonrecurring'
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Download failed');
+        return response.blob();
+    })
+    .then(blob => {
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Set filename based on format
+        const filename = `TG-Wise_Exp_Non-Recurring.${getFileExtension(format)}`;
+        link.download = filename;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert(`TG-Wise Exp Non-Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error downloading file. Please try again.', 'error');
+    });
+}
+
 // Download all T-Hub tables
 function downloadAllTHubTables() {
     if (!allTHubData || allTHubData.length === 0) {
@@ -1546,19 +1723,24 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
     });
     thead.appendChild(headerRow);
     
-    // Get T-Hub totals
+    // Get T-Hub totals for RECURRING only
     let thubTotalFundsReleased = 0;
     let thubTotalExpenditure = 0;
     let thubBalance = 0;
     
     if (thubSummaryData && thubSummaryData.length > 0) {
         thubSummaryData.forEach(row => {
-            // Check if row is NOT a Grand Total (by checking Hub field or Assignment Sanction Number)
+            // Check if row is NOT a Grand Total and is RECURRING
             const isGrandTotal = row['Hub'] === 'Grand Total';
-            if (!isGrandTotal) {
-                thubTotalFundsReleased += parseFloat(row['Expenditure_Limit']) || 0;
-                thubTotalExpenditure += parseFloat(row['Expenditure_Spent']) || 0;
-                thubBalance += parseFloat(row['Balance']) || 0;
+            const isRecurring = row['Grant Type'] === 'Recurring';
+            if (!isGrandTotal && isRecurring) {
+                const fundLimit = parseFloat(row['Expenditure_Limit']) || 0;
+                const fundSpent = parseFloat(row['Expenditure_Spent']) || 0;
+                const balance = parseFloat(row['Balance']) || 0;
+                
+                thubTotalFundsReleased += fundLimit;
+                thubTotalExpenditure += fundSpent;
+                thubBalance += balance;
             }
         });
     }
@@ -1673,6 +1855,34 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
         thubData: thubSummaryData && thubSummaryData.length > 0,
         tgsData: tgSummaryData && tgSummaryData.length > 0
     };
+    
+    // Also store in the global variable for downloads
+    allComparisonTableData = [{
+        sheetName: 'Total Expenditure (T-Hub & TGs)',
+        rows: [
+            {
+                name: 'T-Hub',
+                fundsReleased: thubTotalFundsReleased,
+                expenditure: thubTotalExpenditure,
+                balance: thubBalance,
+                remarks: ''
+            },
+            {
+                name: 'TGs',
+                fundsReleased: tgsTotalFundsReleased,
+                expenditure: tgsTotalExpenditure,
+                balance: tgsBalance,
+                remarks: ''
+            },
+            {
+                name: 'Total',
+                fundsReleased: (thubTotalFundsReleased + tgsTotalFundsReleased),
+                expenditure: (thubTotalExpenditure + tgsTotalExpenditure),
+                balance: (thubBalance + tgsBalance),
+                remarks: ''
+            }
+        ]
+    }];
     
     console.log('DEBUG: thubTgsComparisonData stored:', window.thubTgsComparisonData);
 }
@@ -1822,6 +2032,438 @@ const headers = [
         
         container.appendChild(section);
     });
+}
+
+// Display TG Detailed Tables for Non-Recurring Data
+function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
+    const container = document.getElementById('tgDetailedTablesContainerNonRecurring');
+    if (!container) return;
+    
+    // Mapping of TG codes to institution names
+    const tgNameMapping = {
+        'TG1': 'QuILA',
+        'TG2': 'PIPETA',
+        'TG3': 'TAHQEECAT',
+        'TG4': 'QuEPRAN'
+    };
+    
+    container.innerHTML = '';
+    allTGDetailedDataNonRecurring = []; // Reset the global data for non-recurring
+    
+    if (!tgSummaryData || tgSummaryData.length === 0) return;
+    
+    // Filter out Grand Total row
+    const tgData = tgSummaryData.filter(row => row['TG'] !== 'Grand Total');
+    
+    // Process each TG
+    tgData.forEach(row => {
+        const tgName = row['TG'];
+        const institutionName = tgNameMapping[tgName] || 'Unknown';
+        
+        const section = document.createElement('div');
+        section.className = 'tg-detailed-section';
+        
+        // Header without individual download button
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'tg-detailed-header';
+        
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = `${tgName} - ${institutionName}`;
+        
+        headerDiv.appendChild(titleSpan);
+        section.appendChild(headerDiv);
+        
+        // Store data for combined download
+        const tableData = {
+            tgName: tgName,
+            institutionName: institutionName,
+            toDate: toDate,
+            rows: [
+                {
+                    sanctioned_head: 'Non-Recurring',
+                    total_funds_released: row['Non-Recurring - Expenditure Limit'],
+                    total_expenditure: row['Non-Recurring - Expenditure Spent'],
+                    balance_date: toDate,
+                    balance: row['Non-Recurring - Balance'],
+                    remarks: ''
+                },
+                {
+                    sanctioned_head: 'Total',
+                    total_funds_released: row['Non-Recurring - Expenditure Limit'],
+                    total_expenditure: row['Non-Recurring - Expenditure Spent'],
+                    balance_date: toDate,
+                    balance: row['Non-Recurring - Balance'],
+                    remarks: ''
+                }
+            ]
+        };
+        
+        allTGDetailedDataNonRecurring.push(tableData);
+        
+        // Create table
+        const table = document.createElement('table');
+        table.className = 'tg-detail-table';
+        
+        // Table header
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        const headers = [
+            { main: "Sanctioned Head", roman: "(I)" },
+            { main: "Total Funds Released", roman: "(II)" },
+            { main: "Total Expenditure", roman: "(III)" },
+            { main: `Balance as on (${toDate})`, roman: "(IV = II - III)" },
+            { main: "Remarks", roman: "(if any)" }
+        ];
+        
+        headers.forEach(headerObj => {
+            const th = document.createElement('th');
+            th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        
+        // Table body - Non-Recurring row
+        const tbody = document.createElement('tbody');
+        const nonRecurringRow = document.createElement('tr');
+        
+        // Get values from tg_summary_table (Non-Recurring columns)
+        const nonRecurringData = [
+            'Non-Recurring',
+            row['Non-Recurring - Expenditure Limit'] || '',
+            row['Non-Recurring - Expenditure Spent'] || '',
+            row['Non-Recurring - Balance'] || '',
+            ''
+        ];
+        
+        nonRecurringData.forEach((value, index) => {
+            const td = document.createElement('td');
+            if (index > 0 && index < 4) {
+                td.className = 'number';
+                td.textContent = formatCurrency(value);
+            } else {
+                td.textContent = value;
+            }
+            nonRecurringRow.appendChild(td);
+        });
+        tbody.appendChild(nonRecurringRow);
+        
+        // Total row
+        const totalRow = document.createElement('tr');
+        totalRow.style.fontWeight = 'bold';
+        totalRow.style.backgroundColor = '#e3f2fd';
+        
+        const totalData = [
+            'Total',
+            row['Non-Recurring - Expenditure Limit'] || '',
+            row['Non-Recurring - Expenditure Spent'] || '',
+            row['Non-Recurring - Balance'] || '',
+            ''
+        ];
+        
+        totalData.forEach((value, index) => {
+            const td = document.createElement('td');
+            if (index > 0 && index < 4) {
+                td.className = 'number';
+                td.textContent = formatCurrency(value);
+            } else {
+                td.textContent = value;
+            }
+            totalRow.appendChild(td);
+        });
+        tbody.appendChild(totalRow);
+        
+        table.appendChild(tbody);
+        section.appendChild(table);
+        
+        container.appendChild(section);
+    });
+}
+
+// Display T-Hub & TGs Comparison for Non-Recurring
+function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, toDate) {
+    const section = document.getElementById('thubTgsComparisonSectionNonRecurring');
+    if (!section) return;
+    
+    // Debug: Log the input data
+    console.log('DEBUG displayTHubTgsComparisonNonRecurring - thubSummaryData:', thubSummaryData);
+    console.log('DEBUG displayTHubTgsComparisonNonRecurring - tgSummaryData:', tgSummaryData);
+    
+    // Show the section
+    section.style.display = 'block';
+    
+    const table = document.getElementById('thubTgsComparisonTableNonRecurring');
+    if (!table) return;
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    if (!thead || !tbody) return;
+    
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    
+    // Create header row
+    const headerRow = document.createElement('tr');
+    const headers = [
+        { main: 'T-Hub & TG', roman: '(I)' },
+        { main: 'Total Funds Released', roman: '(II)' },
+        { main: 'Total Expenditure', roman: '(III)' },
+        { main: `Balance as on (${toDate || 'DD/MM/YYYY'})`, roman: '(IV = II - III)' },
+        { main: 'Remarks', roman: '(if any)' }
+    ];
+    
+    headers.forEach(headerObj => {
+        const th = document.createElement('th');
+        th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    
+    // Get T-Hub totals for Non-Recurring only
+    let thubTotalFundsReleased = 0;
+    let thubTotalExpenditure = 0;
+    let thubBalance = 0;
+    
+    if (thubSummaryData && thubSummaryData.length > 0) {
+        thubSummaryData.forEach(row => {
+            // Check if row is NOT a Grand Total and is NON-RECURRING
+            const isGrandTotal = row['Hub'] === 'Grand Total';
+            const isNonRecurring = row['Grant Type'] === 'Non-Recurring';
+            if (!isGrandTotal && isNonRecurring) {
+                const fundLimit = parseFloat(row['Expenditure_Limit']) || 0;
+                const fundSpent = parseFloat(row['Expenditure_Spent']) || 0;
+                const balance = parseFloat(row['Balance']) || 0;
+                
+                thubTotalFundsReleased += fundLimit;
+                thubTotalExpenditure += fundSpent;
+                thubBalance += balance;
+            }
+        });
+    }
+    
+    console.log('DEBUG: Calculated thubTotalFundsReleased (Non-Recurring):', thubTotalFundsReleased, 'thubTotalExpenditure:', thubTotalExpenditure, 'thubBalance:', thubBalance);
+    
+    // Get TGs totals for Non-Recurring - sum all TG rows (they don't have Grand Total row)
+    let tgsTotalFundsReleased = 0;
+    let tgsTotalExpenditure = 0;
+    let tgsBalance = 0;
+    
+    if (tgSummaryData && tgSummaryData.length > 0) {
+        tgSummaryData.forEach(row => {
+            // Skip Grand Total if it exists
+            const isGrandTotal = row['TG'] === 'Grand Total';
+            if (!isGrandTotal) {
+                // Use Non-Recurring columns
+                const fundLimit = parseFloat(row['Non-Recurring - Expenditure Limit']) || 0;
+                const fundSpent = parseFloat(row['Non-Recurring - Expenditure Spent']) || 0;
+                const balance = parseFloat(row['Non-Recurring - Balance']) || 0;
+                
+                tgsTotalFundsReleased += fundLimit;
+                tgsTotalExpenditure += fundSpent;
+                tgsBalance += balance;
+            }
+        });
+    }
+    
+    console.log('DEBUG: Calculated tgsTotalFundsReleased (Non-Recurring):', tgsTotalFundsReleased, 'tgsTotalExpenditure:', tgsTotalExpenditure, 'tgsBalance:', tgsBalance);
+    
+    // Add T-Hub row
+    const thubRow = document.createElement('tr');
+    const thubCells = [
+        'T-Hub',
+        thubTotalFundsReleased,
+        thubTotalExpenditure,
+        thubBalance,
+        ''
+    ];
+    
+    thubCells.forEach((value, index) => {
+        const td = document.createElement('td');
+        if (index === 0 || index === 4) {
+            td.textContent = value;
+        } else {
+            td.className = 'number';
+            td.textContent = formatCurrency(value);
+        }
+        thubRow.appendChild(td);
+    });
+    tbody.appendChild(thubRow);
+    
+    // Add TGs row
+    const tgsRow = document.createElement('tr');
+    const tgsCells = [
+        'TGs',
+        tgsTotalFundsReleased,
+        tgsTotalExpenditure,
+        tgsBalance,
+        ''
+    ];
+    
+    tgsCells.forEach((value, index) => {
+        const td = document.createElement('td');
+        if (index === 0 || index === 4) {
+            td.textContent = value;
+        } else {
+            td.className = 'number';
+            td.textContent = formatCurrency(value);
+        }
+        tgsRow.appendChild(td);
+    });
+    tbody.appendChild(tgsRow);
+    
+    // Add Total row
+    const totalRow = document.createElement('tr');
+    totalRow.style.fontWeight = 'bold';
+    totalRow.style.backgroundColor = '#e3f2fd';
+    
+    const totalCells = [
+        'Total',
+        thubTotalFundsReleased + tgsTotalFundsReleased,
+        thubTotalExpenditure + tgsTotalExpenditure,
+        thubBalance + tgsBalance,
+        ''
+    ];
+    
+    totalCells.forEach((value, index) => {
+        const td = document.createElement('td');
+        if (index === 0 || index === 4) {
+            td.textContent = value;
+        } else {
+            td.className = 'number';
+            td.textContent = formatCurrency(value);
+        }
+        totalRow.appendChild(td);
+    });
+    tbody.appendChild(totalRow);
+    
+    // Store data globally for download
+    window.thubTgsComparisonDataNonRecurring = {
+        toDate: toDate,
+        thubFundsReleased: thubTotalFundsReleased,
+        thubExpenditure: thubTotalExpenditure,
+        thubBalance: thubBalance,
+        tgsFundsReleased: tgsTotalFundsReleased,
+        tgsExpenditure: tgsTotalExpenditure,
+        tgsBalance: tgsBalance,
+        totalFundsReleased: (thubTotalFundsReleased + tgsTotalFundsReleased),
+        totalExpenditure: (thubTotalExpenditure + tgsTotalExpenditure),
+        totalBalance: (thubBalance + tgsBalance),
+        thubData: thubSummaryData && thubSummaryData.length > 0,
+        tgsData: tgSummaryData && tgSummaryData.length > 0
+    };
+    
+    // Also store in the global variable for downloads
+    allComparisonTableDataNonRecurring = [{
+        sheetName: 'Total Expenditure (T-Hub & TGs)',
+        rows: [
+            {
+                name: 'T-Hub',
+                fundsReleased: thubTotalFundsReleased,
+                expenditure: thubTotalExpenditure,
+                balance: thubBalance,
+                remarks: ''
+            },
+            {
+                name: 'TGs',
+                fundsReleased: tgsTotalFundsReleased,
+                expenditure: tgsTotalExpenditure,
+                balance: tgsBalance,
+                remarks: ''
+            },
+            {
+                name: 'Total',
+                fundsReleased: (thubTotalFundsReleased + tgsTotalFundsReleased),
+                expenditure: (thubTotalExpenditure + tgsTotalExpenditure),
+                balance: (thubBalance + tgsBalance),
+                remarks: ''
+            }
+        ]
+    }];
+    
+    console.log('DEBUG: thubTgsComparisonDataNonRecurring stored:', window.thubTgsComparisonDataNonRecurring);
+}
+
+// Display T-Hub Totals Table for Non-Recurring
+function displayTHubTotalsTableNonRecurring(thubTotalsData, toDate) {
+    const section = document.getElementById('thubTotalsSectionNonRecurring');
+    if (!section) return;
+    
+    section.style.display = 'block';
+    
+    const table = document.getElementById('thubTotalsTableNonRecurring');
+    if (!table) return;
+    const thead = table.querySelector('thead');
+    const tbody = table.querySelector('tbody');
+    if (!thead || !tbody) return;
+    
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    
+    // Create header row
+    const headerRow = document.createElement('tr');
+    const headers = [
+        { main: 'T-Hub', roman: '(I)' },
+        { main: 'Total Funds Released', roman: '(II)' },
+        { main: 'Total Expenditure', roman: '(III)' },
+        { main: `Balance as on (${toDate || 'DD/MM/YYYY'})`, roman: '(IV = II - III)' },
+        { main: 'Remarks', roman: '(if any)' }
+    ];
+    
+    headers.forEach(headerObj => {
+        const th = document.createElement('th');
+        th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    
+    // Add data rows - filter for Non-Recurring only
+    if (thubTotalsData && thubTotalsData.length > 0) {
+        // Filter for Non-Recurring rows only
+        const nonRecurringRows = thubTotalsData.filter(row => row['Grant Type'] === 'Non-Recurring' && row['Hub'] !== 'Grand Total');
+        
+        nonRecurringRows.forEach(row => {
+            const tr = document.createElement('tr');
+            
+            const cells = [
+                row['Hub'] || '',
+                row['Expenditure_Limit'] || '',
+                row['Expenditure_Spent'] || '',
+                row['Balance'] || '',
+                ''
+            ];
+            
+            cells.forEach((value, index) => {
+                const td = document.createElement('td');
+                if (index > 0 && index < 4) {
+                    td.className = 'number';
+                    td.textContent = formatCurrency(value);
+                } else {
+                    td.textContent = value;
+                }
+                tr.appendChild(td);
+            });
+            
+            tbody.appendChild(tr);
+        });
+    }
+    
+    // Store data globally
+    window.thubTotalsDataNonRecurring = thubTotalsData;
+    
+    // Store in global variable for downloads
+    if (thubTotalsData && thubTotalsData.length > 0) {
+        const nonRecurringRows = thubTotalsData.filter(row => row['Grant Type'] === 'Non-Recurring' && row['Hub'] !== 'Grand Total');
+        allThubSummaryDataNonRecurring = [{
+            sheetName: 'T-Hub-Wise Expenditure Summary',
+            rows: nonRecurringRows.map(row => ({
+                sanctioned_head: row['Hub'] || '',
+                total_funds_released: row['Expenditure_Limit'] || 0,
+                total_expenditure: row['Expenditure_Spent'] || 0,
+                balance: row['Balance'] || 0,
+                remarks: ''
+            }))
+        }];
+    }
 }
 
 // View switching - Document View and Excel View
@@ -1974,6 +2616,6 @@ downloadBtn.addEventListener('click', () => {
 const downloadAllDocumentBtn = document.getElementById('downloadAllDocumentBtn');
 if (downloadAllDocumentBtn) {
     downloadAllDocumentBtn.addEventListener('click', () => {
-        showAllDocumentsFormatSelectionDialog();
+        downloadAllTGTables();
     });
 }

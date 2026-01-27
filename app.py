@@ -749,21 +749,30 @@ def download_tg_tables():
         data = request.get_json()
         format_type = data.get('format', 'excel')
         tg_data = data.get('data', [])
+        sheet_type = data.get('sheetType', 'all')  # 'recurring', 'nonrecurring', or 'all'
         
         if not tg_data:
             return jsonify({'error': 'No TG data provided'}), 400
         
+        # Determine filename based on sheet type
+        if sheet_type == 'recurring':
+            base_filename = 'TG-Wise_Exp_Recurring'
+        elif sheet_type == 'nonrecurring':
+            base_filename = 'TG-Wise_Exp_Non-Recurring'
+        else:
+            base_filename = 'All_TG_Detailed_Tables'
+        
         if format_type == 'excel':
             output = generate_tg_excel(tg_data)
-            filename = 'All_TG_Detailed_Tables.xlsx'
+            filename = f'{base_filename}.xlsx'
             mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         elif format_type == 'pdf':
             output = generate_tg_pdf(tg_data)
-            filename = 'All_TG_Detailed_Tables.pdf'
+            filename = f'{base_filename}.pdf'
             mimetype = 'application/pdf'
         elif format_type == 'word':
             output = generate_tg_word(tg_data)
-            filename = 'All_TG_Detailed_Tables.docx'
+            filename = f'{base_filename}.docx'
             mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         else:
             return jsonify({'error': 'Invalid format'}), 400
@@ -1045,7 +1054,7 @@ def generate_thub_word(thub_data):
     return output
 
 def generate_tg_excel(tg_data):
-    """Generate TG tables in Excel format"""
+    """Generate TG tables in Excel format with separate sheets for each table"""
     wb = Workbook()
     wb.remove(wb.active)
     
@@ -1057,224 +1066,634 @@ def generate_tg_excel(tg_data):
         bottom=Side(style='thin', color='CCCCCC')
     )
     
-    for tg_item in tg_data:
-        ws = wb.create_sheet(tg_item.get('tgName', 'TG'))
+    # Check if tg_data is the new format with separate table types
+    if isinstance(tg_data, dict):
+        # New format with comparisonTable, thubSummaryTable, tgDetailedTables
         
-        # Add title
-        ws['A1'] = f"{tg_item.get('tgName')} - {tg_item.get('institutionName')}"
-        ws['A1'].font = Font(size=14, bold=True, color='FFFFFF')
-        ws['A1'].fill = PatternFill(start_color='0066CC', end_color='0066CC', fill_type='solid')
-        ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
-        ws.merge_cells('A1:E1')
-        ws.row_dimensions[1].height = 25
+        # Create Comparison Table sheet
+        if tg_data.get('comparisonTable') and len(tg_data['comparisonTable']) > 0:
+            comp_table = tg_data['comparisonTable'][0]
+            ws = wb.create_sheet('Total Expenditure (T-Hub & TGs)')
+            add_comparison_table_to_sheet(ws, comp_table, thin_border)
         
-        # Add headers
-        headers = ['Sanctioned Head\n(I)', 'Total Funds Released\n(II)', 'Total Expenditure\n(III)', 'Balance as on (30-12-2025)\n(IV = II - III)', 'Remarks\n(if any)']
-
-        to_date = tg_item.get('toDate', '30-12-2025')
-        headers[3] = f'Balance as on ({to_date})\n(IV = II - III)'
+        # Create T-Hub Summary Table sheet
+        if tg_data.get('thubSummaryTable') and len(tg_data['thubSummaryTable']) > 0:
+            thub_summary = tg_data['thubSummaryTable'][0]
+            ws = wb.create_sheet('T-Hub-Wise Expenditure Summary')
+            add_thub_summary_table_to_sheet(ws, thub_summary, thin_border)
         
-        for col_num, header in enumerate(headers, 1):
-            cell = ws.cell(row=3, column=col_num)
-            cell.value = header
-            cell.font = Font(bold=True, color='000000', size=12)
-            cell.fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
-            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-            cell.border = Border(
-                left=Side(style='medium', color='000000'),
-                right=Side(style='medium', color='000000'),
-                top=Side(style='medium', color='000000'),
-                bottom=Side(style='medium', color='000000')
-            )
-        ws.row_dimensions[3].height = 40
-        
-        # Add data
-        for row_num, row_data in enumerate(tg_item.get('rows', []), 4):
-            ws.cell(row=row_num, column=1).value = row_data.get('sanctioned_head', '')
-            ws.cell(row=row_num, column=2).value = row_data.get('total_funds_released', 0)
-            ws.cell(row=row_num, column=3).value = row_data.get('total_expenditure', 0)
-            ws.cell(row=row_num, column=4).value = row_data.get('balance', 0)
-            ws.cell(row=row_num, column=5).value = row_data.get('remarks', '')
-            
-            # Format numeric columns and add borders
-            for col in [1, 2, 3, 4, 5]:
-                cell = ws.cell(row=row_num, column=col)
-                cell.border = thin_border
-                cell.alignment = Alignment(vertical='center')
-                if col in [2, 3, 4]:
-                    cell.number_format = '#,##0.00'
-                    cell.alignment = Alignment(horizontal='right', vertical='center')
-                else:
-                    cell.alignment = Alignment(horizontal='left', vertical='center')
-        
-        # Set column widths
-        ws.column_dimensions['A'].width = 22
-        ws.column_dimensions['B'].width = 28
-        ws.column_dimensions['C'].width = 28
-        ws.column_dimensions['D'].width = 40
-        ws.column_dimensions['E'].width = 22
+        # Create TG Detailed Tables sheets
+        if tg_data.get('tgDetailedTables'):
+            for tg_item in tg_data['tgDetailedTables']:
+                ws = wb.create_sheet(tg_item.get('tgName', 'TG'))
+                add_tg_detail_table_to_sheet(ws, tg_item, thin_border)
+    else:
+        # Old format - backward compatibility
+        for tg_item in tg_data:
+            ws = wb.create_sheet(tg_item.get('tgName', 'TG'))
+            add_tg_detail_table_to_sheet(ws, tg_item, thin_border)
     
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
     return output
 
+def add_comparison_table_to_sheet(ws, comp_table, thin_border):
+    """Add comparison table to a worksheet"""
+    # Add title
+    ws['A1'] = 'Total Expenditure (T-Hub & TGs)'
+    ws['A1'].font = Font(size=14, bold=True, color='FFFFFF')
+    ws['A1'].fill = PatternFill(start_color='0066CC', end_color='0066CC', fill_type='solid')
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    ws.merge_cells('A1:D1')
+    ws.row_dimensions[1].height = 25
+    
+    # Add headers
+    headers = ['T-Hub & TG\n(I)', 'Total Funds Released\n(II)', 'Total Expenditure\n(III)', 'Balance\n(IV = II - III)', 'Remarks\n(if any)']
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=3, column=col_num)
+        cell.value = header
+        cell.font = Font(bold=True, color='000000', size=12)
+        cell.fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = Border(
+            left=Side(style='medium', color='000000'),
+            right=Side(style='medium', color='000000'),
+            top=Side(style='medium', color='000000'),
+            bottom=Side(style='medium', color='000000')
+        )
+    ws.row_dimensions[3].height = 40
+    
+    # Add data rows
+    for row_num, row_data in enumerate(comp_table.get('rows', []), 4):
+        ws.cell(row=row_num, column=1).value = row_data.get('name', '')
+        
+        try:
+            ws.cell(row=row_num, column=2).value = float(row_data.get('fundsReleased', 0)) if row_data.get('fundsReleased', 0) else 0
+            ws.cell(row=row_num, column=3).value = float(row_data.get('expenditure', 0)) if row_data.get('expenditure', 0) else 0
+            ws.cell(row=row_num, column=4).value = float(row_data.get('balance', 0)) if row_data.get('balance', 0) else 0
+        except (ValueError, TypeError):
+            ws.cell(row=row_num, column=2).value = 0
+            ws.cell(row=row_num, column=3).value = 0
+            ws.cell(row=row_num, column=4).value = 0
+        
+        ws.cell(row=row_num, column=5).value = row_data.get('remarks', '')
+        
+        for col in [1, 2, 3, 4, 5]:
+            cell = ws.cell(row=row_num, column=col)
+            cell.border = thin_border
+            if col in [2, 3, 4]:
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+            else:
+                cell.alignment = Alignment(horizontal='left', vertical='center')
+    
+    # Set column widths
+    ws.column_dimensions['A'].width = 22
+    ws.column_dimensions['B'].width = 28
+    ws.column_dimensions['C'].width = 28
+    ws.column_dimensions['D'].width = 28
+    ws.column_dimensions['E'].width = 22
+
+def add_thub_summary_table_to_sheet(ws, thub_summary, thin_border):
+    """Add T-Hub summary table to a worksheet"""
+    # Add title
+    ws['A1'] = 'T-Hub-Wise Expenditure Summary'
+    ws['A1'].font = Font(size=14, bold=True, color='FFFFFF')
+    ws['A1'].fill = PatternFill(start_color='0066CC', end_color='0066CC', fill_type='solid')
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    ws.merge_cells('A1:E1')
+    ws.row_dimensions[1].height = 25
+    
+    # Add headers
+    headers = ['Sanctioned Head\n(I)', 'Total Funds Released\n(II)', 'Total Expenditure\n(III)', 'Balance\n(IV = II - III)', 'Remarks\n(if any)']
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=3, column=col_num)
+        cell.value = header
+        cell.font = Font(bold=True, color='000000', size=12)
+        cell.fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = Border(
+            left=Side(style='medium', color='000000'),
+            right=Side(style='medium', color='000000'),
+            top=Side(style='medium', color='000000'),
+            bottom=Side(style='medium', color='000000')
+        )
+    ws.row_dimensions[3].height = 40
+    
+    # Add data rows
+    for row_num, row_data in enumerate(thub_summary.get('rows', []), 4):
+        ws.cell(row=row_num, column=1).value = row_data.get('sanctioned_head', '')
+        
+        try:
+            ws.cell(row=row_num, column=2).value = float(row_data.get('total_funds_released', 0)) if row_data.get('total_funds_released', 0) else 0
+            ws.cell(row=row_num, column=3).value = float(row_data.get('total_expenditure', 0)) if row_data.get('total_expenditure', 0) else 0
+            ws.cell(row=row_num, column=4).value = float(row_data.get('balance', 0)) if row_data.get('balance', 0) else 0
+        except (ValueError, TypeError):
+            ws.cell(row=row_num, column=2).value = 0
+            ws.cell(row=row_num, column=3).value = 0
+            ws.cell(row=row_num, column=4).value = 0
+        
+        ws.cell(row=row_num, column=5).value = row_data.get('remarks', '')
+        
+        for col in [1, 2, 3, 4, 5]:
+            cell = ws.cell(row=row_num, column=col)
+            cell.border = thin_border
+            if col in [2, 3, 4]:
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+            else:
+                cell.alignment = Alignment(horizontal='left', vertical='center')
+    
+    # Set column widths
+    ws.column_dimensions['A'].width = 22
+    ws.column_dimensions['B'].width = 28
+    ws.column_dimensions['C'].width = 28
+    ws.column_dimensions['D'].width = 28
+    ws.column_dimensions['E'].width = 22
+
+def add_tg_detail_table_to_sheet(ws, tg_item, thin_border):
+    """Add TG detail table to a worksheet"""
+    # Add title
+    ws['A1'] = f"{tg_item.get('tgName')} - {tg_item.get('institutionName')}"
+    ws['A1'].font = Font(size=14, bold=True, color='FFFFFF')
+    ws['A1'].fill = PatternFill(start_color='0066CC', end_color='0066CC', fill_type='solid')
+    ws['A1'].alignment = Alignment(horizontal='center', vertical='center')
+    ws.merge_cells('A1:E1')
+    ws.row_dimensions[1].height = 25
+    
+    # Add headers
+    headers = ['Sanctioned Head\n(I)', 'Total Funds Released\n(II)', 'Total Expenditure\n(III)', 'Balance as on\n(IV = II - III)', 'Remarks\n(if any)']
+
+    to_date = tg_item.get('toDate', '30-12-2025')
+    headers[3] = f'Balance as on ({to_date})\n(IV = II - III)'
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=3, column=col_num)
+        cell.value = header
+        cell.font = Font(bold=True, color='000000', size=12)
+        cell.fill = PatternFill(start_color='FFFFFF', end_color='FFFFFF', fill_type='solid')
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        cell.border = Border(
+            left=Side(style='medium', color='000000'),
+            right=Side(style='medium', color='000000'),
+            top=Side(style='medium', color='000000'),
+            bottom=Side(style='medium', color='000000')
+        )
+    ws.row_dimensions[3].height = 40
+    
+    # Add data
+    for row_num, row_data in enumerate(tg_item.get('rows', []), 4):
+        ws.cell(row=row_num, column=1).value = row_data.get('sanctioned_head', '')
+        
+        # Convert numeric values to float to ensure proper formatting
+        try:
+            ws.cell(row=row_num, column=2).value = float(row_data.get('total_funds_released', 0)) if row_data.get('total_funds_released', 0) else 0
+            ws.cell(row=row_num, column=3).value = float(row_data.get('total_expenditure', 0)) if row_data.get('total_expenditure', 0) else 0
+            ws.cell(row=row_num, column=4).value = float(row_data.get('balance', 0)) if row_data.get('balance', 0) else 0
+        except (ValueError, TypeError):
+            ws.cell(row=row_num, column=2).value = 0
+            ws.cell(row=row_num, column=3).value = 0
+            ws.cell(row=row_num, column=4).value = 0
+        
+        ws.cell(row=row_num, column=5).value = row_data.get('remarks', '')
+        
+        # Format numeric columns and add borders
+        for col in [1, 2, 3, 4, 5]:
+            cell = ws.cell(row=row_num, column=col)
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical='center')
+            if col in [2, 3, 4]:
+                cell.number_format = '#,##0.00'
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+            else:
+                cell.alignment = Alignment(horizontal='left', vertical='center')
+    
+    # Set column widths
+    ws.column_dimensions['A'].width = 22
+    ws.column_dimensions['B'].width = 28
+    ws.column_dimensions['C'].width = 28
+    ws.column_dimensions['D'].width = 40
+    ws.column_dimensions['E'].width = 22
+
 def generate_tg_pdf(tg_data):
     """Generate TG tables in PDF format"""
     pdf_buffer = io.BytesIO()
-    doc = SimpleDocTemplate(pdf_buffer, pagesize=A4)
+    doc = SimpleDocTemplate(pdf_buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
     story = []
     
-    for idx, tg_item in enumerate(tg_data):
-        if idx > 0:
-            story.append(PageBreak())
+    # Check if new format
+    if isinstance(tg_data, dict):
+        # Add Comparison Table
+        if tg_data.get('comparisonTable') and len(tg_data['comparisonTable']) > 0:
+            comp_table = tg_data['comparisonTable'][0]
+            add_comparison_table_to_pdf(story, comp_table)
+            story.append(Spacer(1, 0.08*inch))
         
-        # Title
-        title_style = ParagraphStyle(
-            'TGTitle',
-            fontSize=16,
-            textColor=colors.HexColor('#0066CC'),
-            spaceAfter=20,
-            alignment=1,  # TA_CENTER
-            fontName='Helvetica-Bold'
-        )
-        title = Paragraph(f"{tg_item.get('tgName')} - {tg_item.get('institutionName')}", title_style)
-        story.append(title)
+        # Add T-Hub Summary Table
+        if tg_data.get('thubSummaryTable') and len(tg_data['thubSummaryTable']) > 0:
+            thub_summary = tg_data['thubSummaryTable'][0]
+            add_thub_summary_table_to_pdf(story, thub_summary)
+            story.append(Spacer(1, 0.08*inch))
         
-        # Table data with wrapped headers
-        to_date = tg_item.get('toDate', '30-12-2025')
-        header_style = ParagraphStyle(
-            'HeaderStyle',
-            fontSize=10,
-            fontName='Helvetica-Bold',
-            textColor=colors.HexColor('#000000'),
-            alignment=1,  # CENTER
-            wordWrap='CJK'
-        )
-        
-        headers = [
-            Paragraph('Sanctioned Head<br/>(I)', header_style),
-            Paragraph('Total Funds Released<br/>(II)', header_style),
-            Paragraph('Total Expenditure<br/>(III)', header_style),
-            Paragraph(f'Balance as on ({to_date})<br/>(IV = II - III)', header_style),
-            Paragraph('Remarks<br/>(if any)', header_style)
-        ]
-        
-        table_data = [headers]
-        for row in tg_item.get('rows', []):
-            table_data.append([
-                row.get('sanctioned_head', ''),
-                f"{float(row.get('total_funds_released', 0)):,.2f}",
-                f"{float(row.get('total_expenditure', 0)):,.2f}",
-                f"{float(row.get('balance', 0)):,.2f}",
-                row.get('remarks', '')
-            ])
-        
-        # Create table with proper column widths and row heights for header display
-        table = Table(table_data, colWidths=[1.2*inch, 1.4*inch, 1.4*inch, 1.8*inch, 1.0*inch])
-        table.setStyle(TableStyle([
-            # Header row styling
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FFFFFF')),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 8),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.HexColor('#000000')),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-            ('TOPPADDING', (0, 0), (-1, 0), 8),
-            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
-            ('LEFTPADDING', (0, 0), (-1, 0), 4),
-            ('RIGHTPADDING', (0, 0), (-1, 0), 4),
-            
-            # Data rows styling
-            ('FONTSIZE', (0, 1), (-1, -1), 9),
-            ('ALIGN', (0, 1), (0, -1), 'LEFT'),  # Left align first column data
-            ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),  # Right align numeric columns
-            ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
-            ('TOPPADDING', (0, 1), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
-            
-            # Grid and row styling
-            ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
-            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#F8F9FA')]),
-        ]))
-        
-        story.append(table)
-        story.append(Spacer(1, 0.3*inch))
+        # Add TG Detailed Tables
+        if tg_data.get('tgDetailedTables'):
+            for idx, tg_item in enumerate(tg_data['tgDetailedTables']):
+                add_tg_detail_table_to_pdf(story, tg_item)
+                if idx < len(tg_data['tgDetailedTables']) - 1:
+                    story.append(Spacer(1, 0.08*inch))
+    else:
+        # Old format
+        for idx, tg_item in enumerate(tg_data):
+            if idx > 0:
+                story.append(Spacer(1, 0.08*inch))
+            add_tg_detail_table_to_pdf(story, tg_item)
     
     doc.build(story)
     pdf_buffer.seek(0)
     return pdf_buffer
 
+def add_comparison_table_to_pdf(story, comp_table):
+    """Add comparison table to PDF story"""
+    title_style = ParagraphStyle(
+        'Title',
+        fontSize=14,
+        textColor=colors.HexColor('#0066CC'),
+        spaceAfter=6,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    title = Paragraph('Total Expenditure (T-Hub & TGs)', title_style)
+    story.append(title)
+    
+    header_style = ParagraphStyle('HeaderStyle', fontSize=9, fontName='Helvetica-Bold', alignment=TA_CENTER)
+    headers = [
+        Paragraph('T-Hub & TG<br/>(I)', header_style),
+        Paragraph('Total Funds Released<br/>(II)', header_style),
+        Paragraph('Total Expenditure<br/>(III)', header_style),
+        Paragraph('Balance<br/>(IV = II - III)', header_style),
+        Paragraph('Remarks<br/>(if any)', header_style)
+    ]
+    
+    table_data = [headers]
+    for row in comp_table.get('rows', []):
+        try:
+            funds = float(row.get('fundsReleased', 0)) if row.get('fundsReleased', 0) else 0
+            expenditure = float(row.get('expenditure', 0)) if row.get('expenditure', 0) else 0
+            balance = float(row.get('balance', 0)) if row.get('balance', 0) else 0
+        except (ValueError, TypeError):
+            funds = 0
+            expenditure = 0
+            balance = 0
+        
+        table_data.append([
+            row.get('name', ''),
+            f"{funds:,.2f}",
+            f"{expenditure:,.2f}",
+            f"{balance:,.2f}",
+            row.get('remarks', '')
+        ])
+    
+    table = Table(table_data, colWidths=[1.2*inch, 1.4*inch, 1.4*inch, 1.4*inch, 1.0*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FFFFFF')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 0.08*inch))
+
+def add_thub_summary_table_to_pdf(story, thub_summary):
+    """Add T-Hub summary table to PDF story"""
+    title_style = ParagraphStyle(
+        'Title',
+        fontSize=14,
+        textColor=colors.HexColor('#0066CC'),
+        spaceAfter=6,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    title = Paragraph('T-Hub-Wise Expenditure Summary', title_style)
+    story.append(title)
+    
+    header_style = ParagraphStyle('HeaderStyle', fontSize=9, fontName='Helvetica-Bold', alignment=TA_CENTER)
+    headers = [
+        Paragraph('Sanctioned Head<br/>(I)', header_style),
+        Paragraph('Total Funds Released<br/>(II)', header_style),
+        Paragraph('Total Expenditure<br/>(III)', header_style),
+        Paragraph('Balance<br/>(IV = II - III)', header_style),
+        Paragraph('Remarks<br/>(if any)', header_style)
+    ]
+    
+    table_data = [headers]
+    for row in thub_summary.get('rows', []):
+        try:
+            funds = float(row.get('total_funds_released', 0)) if row.get('total_funds_released', 0) else 0
+            expenditure = float(row.get('total_expenditure', 0)) if row.get('total_expenditure', 0) else 0
+            balance = float(row.get('balance', 0)) if row.get('balance', 0) else 0
+        except (ValueError, TypeError):
+            funds = 0
+            expenditure = 0
+            balance = 0
+        
+        table_data.append([
+            row.get('sanctioned_head', ''),
+            f"{funds:,.2f}",
+            f"{expenditure:,.2f}",
+            f"{balance:,.2f}",
+            row.get('remarks', '')
+        ])
+    
+    table = Table(table_data, colWidths=[1.2*inch, 1.4*inch, 1.4*inch, 1.4*inch, 1.0*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FFFFFF')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 0.08*inch))
+
+def add_tg_detail_table_to_pdf(story, tg_item):
+    """Add TG detail table to PDF story"""
+    title_style = ParagraphStyle(
+        'TGTitle',
+        fontSize=14,
+        textColor=colors.HexColor('#0066CC'),
+        spaceAfter=6,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    title = Paragraph(f"{tg_item.get('tgName')} - {tg_item.get('institutionName')}", title_style)
+    story.append(title)
+    
+    to_date = tg_item.get('toDate', '30-12-2025')
+    header_style = ParagraphStyle('HeaderStyle', fontSize=9, fontName='Helvetica-Bold', alignment=TA_CENTER)
+    headers = [
+        Paragraph('Sanctioned Head<br/>(I)', header_style),
+        Paragraph('Total Funds Released<br/>(II)', header_style),
+        Paragraph('Total Expenditure<br/>(III)', header_style),
+        Paragraph(f'Balance as on ({to_date})<br/>(IV = II - III)', header_style),
+        Paragraph('Remarks<br/>(if any)', header_style)
+    ]
+    
+    table_data = [headers]
+    for row in tg_item.get('rows', []):
+        try:
+            funds = float(row.get('total_funds_released', 0)) if row.get('total_funds_released', 0) else 0
+            expenditure = float(row.get('total_expenditure', 0)) if row.get('total_expenditure', 0) else 0
+            balance = float(row.get('balance', 0)) if row.get('balance', 0) else 0
+        except (ValueError, TypeError):
+            funds = 0
+            expenditure = 0
+            balance = 0
+        
+        table_data.append([
+            row.get('sanctioned_head', ''),
+            f"{funds:,.2f}",
+            f"{expenditure:,.2f}",
+            f"{balance:,.2f}",
+            row.get('remarks', '')
+        ])
+    
+    table = Table(table_data, colWidths=[1.2*inch, 1.4*inch, 1.4*inch, 1.8*inch, 1.0*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#FFFFFF')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+        ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#CCCCCC')),
+        ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+        ('ALIGN', (1, 1), (-1, -1), 'RIGHT'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+    ]))
+    story.append(table)
+    story.append(Spacer(1, 0.08*inch))
+
 def generate_tg_word(tg_data):
-    """Generate TG tables in Word format"""
+    """Generate TG tables in Word format with separate sections for each table"""
     doc = Document()
     
-    for tg_item in tg_data:
-        # Add title
-        title = doc.add_paragraph(f"{tg_item.get('tgName')} - {tg_item.get('institutionName')}")
-        title.style = 'Heading 1'
-        title.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        if title.runs:
-            title_format = title.runs[0]
-            title_format.font.size = Pt(14)
-            title_format.font.color.rgb = RGBColor(0, 102, 204)
-            title_format.font.bold = True
+    # Check if new format
+    if isinstance(tg_data, dict):
+        # Add Comparison Table
+        if tg_data.get('comparisonTable') and len(tg_data['comparisonTable']) > 0:
+            comp_table = tg_data['comparisonTable'][0]
+            add_comparison_table_to_word(doc, comp_table)
         
-        # Add table
-        to_date = tg_item.get('toDate', '30-12-2025')
-        headers = ['Sanctioned Head\n(I)', 'Total Funds Released\n(II)', 'Total Expenditure\n(III)', 
-                  f'Balance as on ({to_date})\n(IV = II - III)', 'Remarks\n(if any)']
+        # Add T-Hub Summary Table
+        if tg_data.get('thubSummaryTable') and len(tg_data['thubSummaryTable']) > 0:
+            thub_summary = tg_data['thubSummaryTable'][0]
+            add_thub_summary_table_to_word(doc, thub_summary)
         
-        rows = len(tg_item.get('rows', [])) + 1
-        table = doc.add_table(rows=rows, cols=5)
-        table.style = 'Light Grid Accent 1'
-        
-        # Add headers
-        header_cells = table.rows[0].cells
-        for idx, header in enumerate(headers):
-            # Remove header cell background color (white)
-            from docx.oxml import parse_xml
-            from docx.oxml.ns import nsdecls
-            shading_elm = parse_xml(r'<w:shd {} w:fill="FFFFFF"/>'.format(nsdecls('w')))
-            header_cells[idx]._element.get_or_add_tcPr().append(shading_elm)
-            
-            # Clear cell and set text with line breaks
-            header_cells[idx].text = ''
-            paragraph = header_cells[idx].paragraphs[0]
-            
-            # Split header by newlines and add each line as a separate run
-            lines = header.split('\n')
-            for line_idx, line in enumerate(lines):
-                if line_idx > 0:
-                    paragraph.add_run('\n')
-                run = paragraph.add_run(line)
-                run.font.bold = True
-                run.font.color.rgb = RGBColor(0, 0, 0)  # Black text
-                run.font.size = Pt(12)
-            
-            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        # Add data rows
-        for row_idx, row_data in enumerate(tg_item.get('rows', []), 1):
-            cells = table.rows[row_idx].cells
-            cells[0].text = row_data.get('sanctioned_head', '')
-            cells[1].text = f"{float(row_data.get('total_funds_released', 0)):,.2f}"
-            cells[2].text = f"{float(row_data.get('total_expenditure', 0)):,.2f}"
-            cells[3].text = f"{float(row_data.get('balance', 0)):,.2f}"
-            cells[4].text = row_data.get('remarks', '')
-            
-            # Center align numeric columns
-            for col_idx in [1, 2, 3]:
-                for paragraph in cells[col_idx].paragraphs:
-                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        
-        # Add spacing between tables
-        doc.add_paragraph()
+        # Add TG Detailed Tables
+        if tg_data.get('tgDetailedTables'):
+            for tg_item in tg_data['tgDetailedTables']:
+                add_tg_detail_table_to_word(doc, tg_item)
+    else:
+        # Old format - backward compatibility
+        for tg_item in tg_data:
+            add_tg_detail_table_to_word(doc, tg_item)
     
     output = io.BytesIO()
     doc.save(output)
     output.seek(0)
     return output
+
+def add_comparison_table_to_word(doc, comp_table):
+    """Add comparison table to Word document"""
+    # Add title
+    title = doc.add_paragraph('Total Expenditure (T-Hub & TGs)')
+    title.style = 'Heading 2'
+    if title.runs:
+        title.runs[0].font.color.rgb = RGBColor(0, 102, 204)
+        title.runs[0].font.bold = True
+    
+    headers = ['T-Hub & TG\n(I)', 'Total Funds Released\n(II)', 'Total Expenditure\n(III)', 
+              'Balance\n(IV = II - III)', 'Remarks\n(if any)']
+    
+    rows = len(comp_table.get('rows', [])) + 1
+    table = doc.add_table(rows=rows, cols=5)
+    table.style = 'Light Grid Accent 1'
+    
+    # Add headers
+    header_cells = table.rows[0].cells
+    for idx, header in enumerate(headers):
+        from docx.oxml import parse_xml
+        from docx.oxml.ns import nsdecls
+        shading_elm = parse_xml(r'<w:shd {} w:fill="FFFFFF"/>'.format(nsdecls('w')))
+        header_cells[idx]._element.get_or_add_tcPr().append(shading_elm)
+        
+        header_cells[idx].text = ''
+        paragraph = header_cells[idx].paragraphs[0]
+        lines = header.split('\n')
+        for line_idx, line in enumerate(lines):
+            if line_idx > 0:
+                paragraph.add_run('\n')
+            run = paragraph.add_run(line)
+            run.font.bold = True
+            run.font.size = Pt(11)
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Add data rows
+    for row_idx, row_data in enumerate(comp_table.get('rows', []), 1):
+        cells = table.rows[row_idx].cells
+        cells[0].text = row_data.get('name', '')
+        
+        try:
+            funds = float(row_data.get('fundsReleased', 0)) if row_data.get('fundsReleased', 0) else 0
+            expenditure = float(row_data.get('expenditure', 0)) if row_data.get('expenditure', 0) else 0
+            balance = float(row_data.get('balance', 0)) if row_data.get('balance', 0) else 0
+        except (ValueError, TypeError):
+            funds = 0
+            expenditure = 0
+            balance = 0
+        
+        cells[1].text = f"{funds:,.2f}"
+        cells[2].text = f"{expenditure:,.2f}"
+        cells[3].text = f"{balance:,.2f}"
+        cells[4].text = row_data.get('remarks', '')
+        
+        for col_idx in [1, 2, 3]:
+            for paragraph in cells[col_idx].paragraphs:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+def add_thub_summary_table_to_word(doc, thub_summary):
+    """Add T-Hub summary table to Word document"""
+    # Add title
+    title = doc.add_paragraph('T-Hub-Wise Expenditure Summary')
+    title.style = 'Heading 2'
+    if title.runs:
+        title.runs[0].font.color.rgb = RGBColor(0, 102, 204)
+        title.runs[0].font.bold = True
+    
+    headers = ['Sanctioned Head\n(I)', 'Total Funds Released\n(II)', 'Total Expenditure\n(III)', 
+              'Balance\n(IV = II - III)', 'Remarks\n(if any)']
+    
+    rows = len(thub_summary.get('rows', [])) + 1
+    table = doc.add_table(rows=rows, cols=5)
+    table.style = 'Light Grid Accent 1'
+    
+    # Add headers
+    header_cells = table.rows[0].cells
+    for idx, header in enumerate(headers):
+        from docx.oxml import parse_xml
+        from docx.oxml.ns import nsdecls
+        shading_elm = parse_xml(r'<w:shd {} w:fill="FFFFFF"/>'.format(nsdecls('w')))
+        header_cells[idx]._element.get_or_add_tcPr().append(shading_elm)
+        
+        header_cells[idx].text = ''
+        paragraph = header_cells[idx].paragraphs[0]
+        lines = header.split('\n')
+        for line_idx, line in enumerate(lines):
+            if line_idx > 0:
+                paragraph.add_run('\n')
+            run = paragraph.add_run(line)
+            run.font.bold = True
+            run.font.size = Pt(11)
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Add data rows
+    for row_idx, row_data in enumerate(thub_summary.get('rows', []), 1):
+        cells = table.rows[row_idx].cells
+        cells[0].text = row_data.get('sanctioned_head', '')
+        
+        try:
+            funds = float(row_data.get('total_funds_released', 0)) if row_data.get('total_funds_released', 0) else 0
+            expenditure = float(row_data.get('total_expenditure', 0)) if row_data.get('total_expenditure', 0) else 0
+            balance = float(row_data.get('balance', 0)) if row_data.get('balance', 0) else 0
+        except (ValueError, TypeError):
+            funds = 0
+            expenditure = 0
+            balance = 0
+        
+        cells[1].text = f"{funds:,.2f}"
+        cells[2].text = f"{expenditure:,.2f}"
+        cells[3].text = f"{balance:,.2f}"
+        cells[4].text = row_data.get('remarks', '')
+        
+        for col_idx in [1, 2, 3]:
+            for paragraph in cells[col_idx].paragraphs:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+def add_tg_detail_table_to_word(doc, tg_item):
+    """Add TG detail table to Word document"""
+    # Add title
+    title = doc.add_paragraph(f"{tg_item.get('tgName')} - {tg_item.get('institutionName')}")
+    title.style = 'Heading 2'
+    if title.runs:
+        title.runs[0].font.color.rgb = RGBColor(0, 102, 204)
+        title.runs[0].font.bold = True
+    
+    # Add table
+    to_date = tg_item.get('toDate', '30-12-2025')
+    headers = ['Sanctioned Head\n(I)', 'Total Funds Released\n(II)', 'Total Expenditure\n(III)', 
+              f'Balance as on ({to_date})\n(IV = II - III)', 'Remarks\n(if any)']
+    
+    rows = len(tg_item.get('rows', [])) + 1
+    table = doc.add_table(rows=rows, cols=5)
+    table.style = 'Light Grid Accent 1'
+    
+    # Add headers
+    header_cells = table.rows[0].cells
+    for idx, header in enumerate(headers):
+        # Remove header cell background color (white)
+        from docx.oxml import parse_xml
+        from docx.oxml.ns import nsdecls
+        shading_elm = parse_xml(r'<w:shd {} w:fill="FFFFFF"/>'.format(nsdecls('w')))
+        header_cells[idx]._element.get_or_add_tcPr().append(shading_elm)
+        
+        # Clear cell and set text with line breaks
+        header_cells[idx].text = ''
+        paragraph = header_cells[idx].paragraphs[0]
+        
+        # Split header by newlines and add each line as a separate run
+        lines = header.split('\n')
+        for line_idx, line in enumerate(lines):
+            if line_idx > 0:
+                paragraph.add_run('\n')
+            run = paragraph.add_run(line)
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(0, 0, 0)  # Black text
+            run.font.size = Pt(11)
+        
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    # Add data rows
+    for row_idx, row_data in enumerate(tg_item.get('rows', []), 1):
+        cells = table.rows[row_idx].cells
+        cells[0].text = row_data.get('sanctioned_head', '')
+        
+        try:
+            funds_released = float(row_data.get('total_funds_released', 0)) if row_data.get('total_funds_released', 0) else 0
+            expenditure = float(row_data.get('total_expenditure', 0)) if row_data.get('total_expenditure', 0) else 0
+            balance = float(row_data.get('balance', 0)) if row_data.get('balance', 0) else 0
+        except (ValueError, TypeError):
+            funds_released = 0
+            expenditure = 0
+            balance = 0
+        
+        cells[1].text = f"{funds_released:,.2f}"
+        cells[2].text = f"{expenditure:,.2f}"
+        cells[3].text = f"{balance:,.2f}"
+        cells[4].text = row_data.get('remarks', '')
+        
+        # Center align numeric columns
+        for col_idx in [1, 2, 3]:
+            for paragraph in cells[col_idx].paragraphs:
+                paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
 @app.route('/download-thub-totals', methods=['POST'])
 def download_thub_totals():
