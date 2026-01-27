@@ -97,14 +97,18 @@
                     <i class="fas fa-download"></i> Download Excel Report
                 </button>
                 <button class="download-btn" id="downloadAllDocumentBtn" style="display: none;">
-                    <i class="fas fa-download"></i> Download All
+                    <i class="fas fa-download"></i> Download
                 </button>
             </div>
 
             <!-- View Toggle -->
             <div class="view-toggle" id="viewToggle">
                 <button class="view-btn active" data-view="document">
+<<<<<<< HEAD
                     <i class="fas fa-file-pdf"></i> UC Rec vs Non-Rec<br>(Document View) 
+=======
+                    <i class="fas fa-file-pdf"></i> UC Rec & Non-Rec<br>(Document View) 
+>>>>>>> ed5bcc0 (indianformat)
                 </button>
                 <button class="view-btn" data-view="excel">
                     <i class="fas fa-table"></i> Excel View
@@ -115,10 +119,10 @@
             <div class="view-section active" id="documentView">
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="tgsummary">
-                        <i class="fas fa-table"></i> TG-Wise Exp Recurring
+                        <i class="fas fa-table"></i> Overall TG-Wise Exp Recurring
                     </button>
                     <button class="tab-btn" data-tab="tgsummarynonrecurring">
-                        <i class="fas fa-table"></i> TG-Wise Exp Non-Recurring
+                        <i class="fas fa-table"></i> Overall TG-Wise Exp Non-Recurring
                     </button>
                 </div>
 
@@ -189,16 +193,16 @@
             <div class="view-section" id="excelView">
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="split">
-                        <i class="fas fa-columns"></i> Institute-Wise Exp Rec vs Non-Rec
+                        <i class="fas fa-columns"></i> Institute-Wise Exp Rec & Non-Rec
                     </button>
                     <button class="tab-btn" data-tab="tgexcel">
-                        <i class="fas fa-list"></i> TG-Wise Exp Rec vs Non-Rec
+                        <i class="fas fa-list"></i> TG-Wise Exp Rec & Non-Rec
                     </button>
                     <button class="tab-btn" data-tab="thub">
-                        <i class="fas fa-warehouse"></i> T-Hub-Wise Exp Rec vs Non-Rec
+                        <i class="fas fa-warehouse"></i> T-Hub-Wise Exp Rec & Non-Rec
                     </button>
                     <button class="tab-btn" data-tab="recurring">
-                        <i class="fas fa-chart-pie"></i> Overall Rec vs Non-Rec
+                        <i class="fas fa-chart-pie"></i> Overall Rec & Non-Rec
                     </button>
                 </div>
 
@@ -222,7 +226,7 @@
 
                 <div class="tab-content" id="thub">
                     <div class="tab-header">
-                        <button class="btn btn-primary" onclick="downloadAllTHubTables()">Download All T-Hub Tables</button>
+                        <!-- <button class="btn btn-primary" onclick="downloadAllTHubTables()">Download All T-Hub Tables</button> -->
                     </div>
                     <div class="table-container">
                         <table class="data-table" id="thubTable">

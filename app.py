@@ -23,9 +23,49 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 def format_currency(value):
-    """Format numbers with commas for readability"""
+    """Format numbers in Indian format with commas"""
     try:
-        return f"{float(value):,.2f}"
+        num = float(value)
+        # Format with 2 decimal places
+        formatted = f"{num:.2f}"
+        
+        # Split into integer and decimal parts
+        parts = formatted.split('.')
+        integer_part = parts[0]
+        decimal_part = parts[1]
+        
+        # Handle negative numbers
+        is_negative = integer_part.startswith('-')
+        if is_negative:
+            integer_part = integer_part[1:]
+        
+        # Apply Indian numbering format
+        # Last 3 digits, then every 2 digits
+        if len(integer_part) <= 3:
+            indian_format = integer_part
+        else:
+            # Reverse to process from right
+            reversed_int = integer_part[::-1]
+            
+            # First 3 digits
+            result = reversed_int[:3]
+            remaining = reversed_int[3:]
+            
+            # Add remaining digits in groups of 2
+            for i in range(0, len(remaining), 2):
+                result += ',' + remaining[i:i+2]
+            
+            # Reverse back
+            indian_format = result[::-1]
+        
+        # Add decimal part
+        final_result = f"{indian_format}.{decimal_part}"
+        
+        # Add negative sign if needed
+        if is_negative:
+            final_result = '-' + final_result
+        
+        return final_result
     except:
         return value
 
@@ -1348,9 +1388,9 @@ def add_comparison_table_to_pdf(story, comp_table):
         
         table_data.append([
             row.get('name', ''),
-            f"{funds:,.2f}",
-            f"{expenditure:,.2f}",
-            f"{balance:,.2f}",
+            format_currency(funds),
+            format_currency(expenditure),
+            format_currency(balance),
             row.get('remarks', '')
         ])
     
@@ -1404,9 +1444,9 @@ def add_thub_summary_table_to_pdf(story, thub_summary):
         
         table_data.append([
             row.get('sanctioned_head', ''),
-            f"{funds:,.2f}",
-            f"{expenditure:,.2f}",
-            f"{balance:,.2f}",
+            format_currency(funds),
+            format_currency(expenditure),
+            format_currency(balance),
             row.get('remarks', '')
         ])
     
@@ -1461,9 +1501,9 @@ def add_tg_detail_table_to_pdf(story, tg_item):
         
         table_data.append([
             row.get('sanctioned_head', ''),
-            f"{funds:,.2f}",
-            f"{expenditure:,.2f}",
-            f"{balance:,.2f}",
+            format_currency(funds),
+            format_currency(expenditure),
+            format_currency(balance),
             row.get('remarks', '')
         ])
     
@@ -1593,9 +1633,9 @@ def add_comparison_table_to_word(doc, comp_table):
             expenditure = 0
             balance = 0
         
-        cells[1].text = f"{funds:,.2f}"
-        cells[2].text = f"{expenditure:,.2f}"
-        cells[3].text = f"{balance:,.2f}"
+        cells[1].text = format_currency(funds)
+        cells[2].text = format_currency(expenditure)
+        cells[3].text = format_currency(balance)
         cells[4].text = row_data.get('remarks', '')
         
         for col_idx in [1, 2, 3]:
@@ -1653,9 +1693,9 @@ def add_thub_summary_table_to_word(doc, thub_summary):
             expenditure = 0
             balance = 0
         
-        cells[1].text = f"{funds:,.2f}"
-        cells[2].text = f"{expenditure:,.2f}"
-        cells[3].text = f"{balance:,.2f}"
+        cells[1].text = format_currency(funds)
+        cells[2].text = format_currency(expenditure)
+        cells[3].text = format_currency(balance)
         cells[4].text = row_data.get('remarks', '')
         
         for col_idx in [1, 2, 3]:
@@ -1721,9 +1761,9 @@ def add_tg_detail_table_to_word(doc, tg_item):
             expenditure = 0
             balance = 0
         
-        cells[1].text = f"{funds_released:,.2f}"
-        cells[2].text = f"{expenditure:,.2f}"
-        cells[3].text = f"{balance:,.2f}"
+        cells[1].text = format_currency(funds_released)
+        cells[2].text = format_currency(expenditure)
+        cells[3].text = format_currency(balance)
         cells[4].text = row_data.get('remarks', '')
         
         # Center align numeric columns
