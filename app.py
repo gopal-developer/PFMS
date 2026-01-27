@@ -7,7 +7,7 @@ import json
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER
+from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.units import inch, mm
 from docx import Document
@@ -1320,7 +1320,7 @@ def add_comparison_table_to_pdf(story, comp_table):
         fontSize=14,
         textColor=colors.HexColor('#0066CC'),
         spaceAfter=6,
-        alignment=TA_CENTER,
+        alignment=TA_LEFT,
         fontName='Helvetica-Bold'
     )
     title = Paragraph('Total Expenditure (T-Hub & TGs)', title_style)
@@ -1376,7 +1376,7 @@ def add_thub_summary_table_to_pdf(story, thub_summary):
         fontSize=14,
         textColor=colors.HexColor('#0066CC'),
         spaceAfter=6,
-        alignment=TA_CENTER,
+        alignment=TA_LEFT,
         fontName='Helvetica-Bold'
     )
     title = Paragraph('T-Hub-Wise Expenditure Summary', title_style)
@@ -1432,7 +1432,7 @@ def add_tg_detail_table_to_pdf(story, tg_item):
         fontSize=14,
         textColor=colors.HexColor('#0066CC'),
         spaceAfter=6,
-        alignment=TA_CENTER,
+        alignment=TA_LEFT,
         fontName='Helvetica-Bold'
     )
     title = Paragraph(f"{tg_item.get('tgName')} - {tg_item.get('institutionName')}", title_style)
@@ -1512,11 +1512,42 @@ def generate_tg_word(tg_data):
     output.seek(0)
     return output
 
+def set_table_black_borders(table):
+    """Set all table borders to normal black color"""
+    from docx.oxml import parse_xml
+    from docx.oxml.ns import nsdecls
+    
+    tbl = table._tbl
+    tblPr = tbl.tblPr
+    if tblPr is None:
+        tblPr = parse_xml(r'<w:tblPr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"/>')
+        tbl.insert(0, tblPr)
+    
+    # Remove existing borders if any
+    existing_borders = tblPr.find('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tblBorders')
+    if existing_borders is not None:
+        tblPr.remove(existing_borders)
+    
+    # Create table borders element with normal black color (000000) and reduced thickness
+    tblBorders = parse_xml(
+        r'<w:tblBorders xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        r'<w:top w:val="single" w:sz="12" w:space="0" w:color="000000" w:themeColor="none"/>'
+        r'<w:left w:val="single" w:sz="12" w:space="0" w:color="000000" w:themeColor="none"/>'
+        r'<w:bottom w:val="single" w:sz="12" w:space="0" w:color="000000" w:themeColor="none"/>'
+        r'<w:right w:val="single" w:sz="12" w:space="0" w:color="000000" w:themeColor="none"/>'
+        r'<w:insideH w:val="single" w:sz="12" w:space="0" w:color="000000" w:themeColor="none"/>'
+        r'<w:insideV w:val="single" w:sz="12" w:space="0" w:color="000000" w:themeColor="none"/>'
+        r'</w:tblBorders>'
+    )
+    
+    tblPr.append(tblBorders)
+
 def add_comparison_table_to_word(doc, comp_table):
     """Add comparison table to Word document"""
     # Add title
     title = doc.add_paragraph('Total Expenditure (T-Hub & TGs)')
     title.style = 'Heading 2'
+    title.alignment = WD_ALIGN_PARAGRAPH.LEFT
     if title.runs:
         title.runs[0].font.color.rgb = RGBColor(0, 102, 204)
         title.runs[0].font.bold = True
@@ -1526,7 +1557,8 @@ def add_comparison_table_to_word(doc, comp_table):
     
     rows = len(comp_table.get('rows', [])) + 1
     table = doc.add_table(rows=rows, cols=5)
-    table.style = 'Light Grid Accent 1'
+    table.style = 'Table Grid'
+    set_table_black_borders(table)
     
     # Add headers
     header_cells = table.rows[0].cells
@@ -1575,6 +1607,7 @@ def add_thub_summary_table_to_word(doc, thub_summary):
     # Add title
     title = doc.add_paragraph('T-Hub-Wise Expenditure Summary')
     title.style = 'Heading 2'
+    title.alignment = WD_ALIGN_PARAGRAPH.LEFT
     if title.runs:
         title.runs[0].font.color.rgb = RGBColor(0, 102, 204)
         title.runs[0].font.bold = True
@@ -1584,7 +1617,8 @@ def add_thub_summary_table_to_word(doc, thub_summary):
     
     rows = len(thub_summary.get('rows', [])) + 1
     table = doc.add_table(rows=rows, cols=5)
-    table.style = 'Light Grid Accent 1'
+    table.style = 'Table Grid'
+    set_table_black_borders(table)
     
     # Add headers
     header_cells = table.rows[0].cells
@@ -1633,6 +1667,7 @@ def add_tg_detail_table_to_word(doc, tg_item):
     # Add title
     title = doc.add_paragraph(f"{tg_item.get('tgName')} - {tg_item.get('institutionName')}")
     title.style = 'Heading 2'
+    title.alignment = WD_ALIGN_PARAGRAPH.LEFT
     if title.runs:
         title.runs[0].font.color.rgb = RGBColor(0, 102, 204)
         title.runs[0].font.bold = True
@@ -1644,7 +1679,8 @@ def add_tg_detail_table_to_word(doc, tg_item):
     
     rows = len(tg_item.get('rows', [])) + 1
     table = doc.add_table(rows=rows, cols=5)
-    table.style = 'Light Grid Accent 1'
+    table.style = 'Table Grid'
+    set_table_black_borders(table)
     
     # Add headers
     header_cells = table.rows[0].cells
