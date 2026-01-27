@@ -41,3 +41,6 @@ Thumbs.db
 # Uploads (optional - remove if you want to keep upload history)
 uploads/*
 !uploads/.gitkeep
+# Generated Excel files
+*.xlsx
+*.xls
