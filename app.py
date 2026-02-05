@@ -101,6 +101,242 @@ def process_option1(input_file):
     
     return output
 
+def extract_uc_data(input_file):
+    """Extract UC data based on Hybrid Agency value - supports multiple rows"""
+    try:
+        search_value = "TNCH00009452"
+        HEADER_ROW_1 = 12
+        HEADER_ROW_2 = 13
+        DATA_START = 14
+        
+        # Read header rows
+        h1 = pd.read_excel(input_file, header=None, skiprows=HEADER_ROW_1, nrows=1).iloc[0]
+        h2 = pd.read_excel(input_file, header=None, skiprows=HEADER_ROW_2, nrows=1).iloc[0]
+        
+        h1 = h1.ffill()
+        h2 = h2.fillna("")
+        
+        # Create multi-index columns
+        multi_columns = pd.MultiIndex.from_tuples(
+            [(str(a).strip(), str(b).strip()) for a, b in zip(h1, h2)]
+        )
+        
+        # Read data
+        df = pd.read_excel(input_file, header=None, skiprows=DATA_START)
+        df.columns = multi_columns
+        df = df.ffill()
+        
+        # Find the Hybrid Agency column by checking column names
+        hybrid_agency_col = None
+        for col in df.columns:
+            col_str = str(col)
+            if 'Hybrid Agency' in col_str:
+                hybrid_agency_col = col
+                break
+        
+        if hybrid_agency_col is None:
+            print("Warning: Hybrid Agency column not found")
+            print(f"Available columns: {df.columns.tolist()}")
+            return None
+        
+        # Find rows matching the search value
+        # Convert to Series and then apply the filter
+        hybrid_agency_series = df[hybrid_agency_col]
+        if isinstance(hybrid_agency_series, pd.DataFrame):
+            # If multi-column result, take first column
+            hybrid_agency_series = hybrid_agency_series.iloc[:, 0]
+        
+        filtered_df = df[hybrid_agency_series.astype(str).str.contains(search_value, na=False)]
+        
+        if filtered_df.empty:
+            print(f"Warning: No rows found with Hybrid Agency value: {search_value}")
+            return None
+        
+        # Find the Assignment Sanction Number column
+        assignment_sanction_col = None
+        for col in df.columns:
+            if 'Assignment Sanction' in str(col):
+                assignment_sanction_col = col
+                break
+        
+        # Find the Total Drawing limit issued by Parent Agency column
+        total_drawing_col = None
+        for col in df.columns:
+            if 'Total Drawing limit issued by Parent Agency' in str(col):
+                total_drawing_col = col
+                break
+        
+        # Find columns for the last three columns (indices 6, 7, 8)
+        total_available_col = None
+        expenditure_col = None
+        closing_balance_col = None
+        
+        for col in df.columns:
+            col_str = str(col)
+            if 'Total Available funds' in col_str:
+                total_available_col = col
+            elif 'Expenditure incurred' in col_str:
+                expenditure_col = col
+            elif 'Closing Balances' in col_str:
+                closing_balance_col = col
+        
+        print(f"DEBUG: Assignment Sanction Col: {assignment_sanction_col}")
+        print(f"DEBUG: Total Drawing Col: {total_drawing_col}")
+        print(f"DEBUG: Total Available Col: {total_available_col}")
+        print(f"DEBUG: Expenditure Col: {expenditure_col}")
+        print(f"DEBUG: Closing Balance Col: {closing_balance_col}")
+        print(f"DEBUG: Found {len(filtered_df)} matching rows")
+        
+        # Extract data from ALL matching rows
+        uc_data_list = []
+        seen_combinations = set()  # Track seen sanction+amount combinations to avoid duplicates
+        
+        for idx, (_, row) in enumerate(filtered_df.iterrows()):
+            sanction_number = ""
+            amount = 0
+            
+            # Extract Sanction Number (take the part ending with (G) or (C))
+            if assignment_sanction_col is not None:
+                try:
+                    sanction_value = row[assignment_sanction_col]
+                    # Handle if it returns a DataFrame/Series
+                    if isinstance(sanction_value, pd.Series):
+                        sanction_value = sanction_value.iloc[0] if len(sanction_value) > 0 else ""
+                    
+                    sanction_str = str(sanction_value).strip()
+                    print(f"DEBUG Row {idx}: Sanction String: {sanction_str}")
+                    
+                    # Extract the part ending with (G) or (C) - handle both uppercase and lowercase
+                    # Look for the rightmost occurrence of (G), (g), (C), or (c)
+                    sanction_number = ""
+                    
+                    # Find all positions of suffixes
+                    pos_G = sanction_str.rfind('(G)')
+                    pos_g = sanction_str.rfind('(g)')
+                    pos_C = sanction_str.rfind('(C)')
+                    pos_c = sanction_str.rfind('(c)')
+                    
+                    # Find the rightmost position
+                    positions = [(pos, 3) for pos in [pos_G, pos_g, pos_C, pos_c] if pos != -1]
+                    
+                    if positions:
+                        # Get the rightmost position
+                        max_pos = max(positions, key=lambda x: x[0])[0]
+                        sanction_number = sanction_str[:max_pos + 3]
+                    else:
+                        sanction_number = sanction_str
+                    
+                    print(f"DEBUG Row {idx}: Extracted Sanction Number: {sanction_number}")
+                except Exception as e:
+                    print(f"Error extracting sanction number for row {idx}: {e}")
+                    sanction_number = ""
+            
+            # Extract Total Drawing limit
+            if total_drawing_col is not None:
+                try:
+                    amount_value = row[total_drawing_col]
+                    # Handle if it returns a DataFrame/Series
+                    if isinstance(amount_value, pd.Series):
+                        amount_value = amount_value.iloc[0] if len(amount_value) > 0 else 0
+                    
+                    amount = float(amount_value)
+                    print(f"DEBUG Row {idx}: Amount: {amount}")
+                except Exception as e:
+                    print(f"Error extracting amount for row {idx}: {e}")
+                    amount = 0
+            
+            # Extract Total Available funds
+            total_available = 0
+            if total_available_col is not None:
+                try:
+                    val = row[total_available_col]
+                    if isinstance(val, pd.Series):
+                        val = val.iloc[0] if len(val) > 0 else 0
+                    total_available = float(val)
+                except Exception as e:
+                    total_available = 0
+            
+            # Extract Expenditure incurred
+            expenditure = 0
+            if expenditure_col is not None:
+                try:
+                    val = row[expenditure_col]
+                    if isinstance(val, pd.Series):
+                        val = val.iloc[0] if len(val) > 0 else 0
+                    expenditure = float(val)
+                except Exception as e:
+                    expenditure = 0
+            
+            # Extract Closing Balances
+            closing_balance = 0
+            if closing_balance_col is not None:
+                try:
+                    val = row[closing_balance_col]
+                    if isinstance(val, pd.Series):
+                        val = val.iloc[0] if len(val) > 0 else 0
+                    closing_balance = float(val)
+                except Exception as e:
+                    closing_balance = 0
+            
+            # Only add if we have at least a sanction number and it's not a duplicate
+            if sanction_number:
+                # Round amount to 2 decimal places to avoid floating point precision issues
+                # This ensures "104730990.0" and "104730990.00" are treated the same
+                amount_rounded = round(amount, 2)
+                combo = (sanction_number.upper(), amount_rounded)  # Normalize sanction number to uppercase for comparison
+                
+                if combo not in seen_combinations:
+                    uc_data_list.append({
+                        'sanction_number': sanction_number,
+                        'amount': amount,
+                        'total_available': total_available,
+                        'expenditure': expenditure,
+                        'closing_balance': closing_balance
+                    })
+                    seen_combinations.add(combo)
+                    print(f"DEBUG: Added unique entry - Sanction: {sanction_number}, Amount: {amount_rounded}")
+                else:
+                    print(f"DEBUG: Skipped duplicate entry - Sanction: {sanction_number}, Amount: {amount_rounded}")
+        
+        if not uc_data_list:
+            print("No valid UC data extracted")
+            return None
+        
+        # Separate data by grant type (G = Recurring, C = Non-Recurring)
+        recurring_data = []
+        non_recurring_data = []
+        
+        for entry in uc_data_list:
+            sanction_num = entry['sanction_number'].upper().strip()
+            # Check suffix while handling any whitespace
+            if sanction_num.endswith('(G)') or '(G)' in sanction_num[-5:]:
+                recurring_data.append(entry)
+                print(f"DEBUG: Added to Recurring - {entry['sanction_number']}")
+            elif sanction_num.endswith('(C)') or '(C)' in sanction_num[-5:]:
+                non_recurring_data.append(entry)
+                print(f"DEBUG: Added to Non-Recurring - {entry['sanction_number']}")
+            else:
+                # If no clear suffix, log it
+                print(f"DEBUG: WARNING - No clear suffix detected for {entry['sanction_number']}, sanction_num={sanction_num}")
+        
+        print(f"DEBUG: Extracted {len(uc_data_list)} unique UC data entries (after removing duplicates)")
+        print(f"DEBUG: Recurring (G) entries: {len(recurring_data)}")
+        print(f"DEBUG: Non-Recurring (C) entries: {len(non_recurring_data)}")
+        print(f"DEBUG: Recurring data: {[(d['sanction_number'], d['amount']) for d in recurring_data]}")
+        print(f"DEBUG: Non-Recurring data: {[(d['sanction_number'], d['amount']) for d in non_recurring_data]}")
+        
+        # Return organized by type
+        return {
+            'recurring': recurring_data,
+            'non_recurring': non_recurring_data
+        }
+    
+    except Exception as e:
+        print(f"Error extracting UC data: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 def extract_dates(input_file):
     """Extract From Date and To Date from Excel file metadata"""
     try:
@@ -610,6 +846,15 @@ def process():
         final_path = os.path.join(app.config['UPLOAD_FOLDER'], 'final_output.xlsx')
         with open(final_path, 'wb') as f:
             f.write(final_output.getvalue())
+        
+        # Extract UC data from the original input file
+        print("Processing Step 3: Extracting UC data...")
+        uc_data = extract_uc_data(filepath)
+        if uc_data:
+            preview_data['uc_data'] = uc_data
+            print(f"UC data extracted: {uc_data}")
+        else:
+            preview_data['uc_data'] = None
         
         if filepath and os.path.exists(filepath):
             os.remove(filepath)

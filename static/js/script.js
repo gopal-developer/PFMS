@@ -173,6 +173,7 @@ async function processFile() {
     }, 200);
 
     try {
+        console.log('=== Uploading file to /process ===');
         const response = await fetch('/process', {
             method: 'POST',
             body: formData
@@ -187,11 +188,13 @@ async function processFile() {
         }
 
         const data = await response.json();
+        console.log('Server response received:', data);
         
         if (data.success) {
             progressText.textContent = 'Processing complete!';
             showAlert('File processed successfully!', 'success');
             
+            console.log('Calling displayResults with preview data');
             // Display results and set default view to Document View
             displayResults(data.preview);
             resultsSection.style.display = 'block';
@@ -363,6 +366,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Display results in tables
 function displayResults(preview) {
+    console.log('=== displayResults called ===');
+    console.log('preview object:', preview);
+    
     // Display metadata if available
     let hasMetadata = false;
     
@@ -464,6 +470,239 @@ function displayResults(preview) {
     // if (preview.tg_wise_summary && Object.keys(preview.tg_wise_summary).length > 0) {
     //     displayTGWiseSummary(preview.tg_wise_summary, preview.to_date);
     // }
+    
+    // Display UC data if available
+    if (preview.uc_data) {
+        console.log('UC data available in preview, calling populateUCData');
+        populateUCData(preview.uc_data);
+    } else {
+        console.log('No UC data in preview');
+    }
+    
+    console.log('=== displayResults completed ===');
+}
+
+// Populate UC table with extracted data
+function populateUCData(ucData) {
+    try {
+        console.log('=== populateUCData called ===');
+        console.log('ucData input:', ucData);
+        console.log('ucData type:', typeof ucData);
+        
+        // Determine if ucData is organized by type (recurring/non-recurring) or a simple array
+        let recurringData = [];
+        let nonRecurringData = [];
+        
+        if (ucData && typeof ucData === 'object' && !Array.isArray(ucData)) {
+            // New format: {recurring: [...], non_recurring: [...]}
+            recurringData = ucData.recurring || [];
+            nonRecurringData = ucData.non_recurring || [];
+            console.log(`Data organized by type - Recurring: ${recurringData.length}, Non-Recurring: ${nonRecurringData.length}`);
+        } else if (Array.isArray(ucData)) {
+            // Old format: simple array
+            recurringData = ucData;
+            console.log(`Simple array format with ${recurringData.length} entries`);
+        }
+        
+        // Find Recurring table by ID
+        const recurringTableBody = document.querySelector('table.uc-template-table:not(#ucNonRecurringTable) tbody');
+        if (recurringTableBody) {
+            console.log(`Populating Recurring table with ${recurringData.length} entries`);
+            populateTableData(recurringTableBody, recurringData, 'Recurring');
+        } else {
+            console.warn('Recurring table body not found');
+        }
+        
+        // Find Non-Recurring table by ID
+        const nonRecurringTableBody = document.getElementById('ucNonRecurringTableBody');
+        if (nonRecurringTableBody) {
+            console.log(`Populating Non-Recurring table with ${nonRecurringData.length} entries`);
+            populateTableData(nonRecurringTableBody, nonRecurringData, 'Non-Recurring');
+        } else {
+            console.warn('Non-Recurring table body not found');
+        }
+        
+        const totalCount = recurringData.length + nonRecurringData.length;
+        if (totalCount > 0) {
+            showAlert(`${recurringData.length} Recurring and ${nonRecurringData.length} Non-Recurring UC data entries populated`, 'success');
+        }
+        console.log('=== populateUCData completed successfully ===');
+    } catch (error) {
+        console.error('Error populating UC data:', error);
+        console.error('Stack trace:', error.stack);
+    }
+}
+
+// Helper function to populate a table with data
+function populateTableData(tbody, dataList, tableType) {
+    try {
+        console.log(`populateTableData called for ${tableType} with ${dataList.length} entries`);
+        
+        // Clear existing rows
+        tbody.innerHTML = '';
+        console.log(`Cleared ${tableType} table rows`);
+        
+        // Calculate total amount from all rows
+        const totalAmount = dataList.reduce((sum, data) => {
+            return sum + (parseFloat(data.amount) || 0);
+        }, 0);
+        console.log(`Total Amount sum: ${totalAmount}`);
+        
+        // Calculate total expenditure from SC Exp table (Total Expenditure (III) column)
+        let totalExpenditureFromSC = 0;
+        const lowerTableType = tableType.toLowerCase();
+        
+        if (lowerTableType.includes('recurring') && !lowerTableType.includes('non')) {
+            // Recurring
+            const scTable = document.getElementById('thubTgsComparisonTable');
+            if (scTable) {
+                const tbody_sc = scTable.querySelector('tbody');
+                if (tbody_sc) {
+                    const rows_sc = tbody_sc.querySelectorAll('tr');
+                    console.log(`Found ${rows_sc.length} rows in SC Recurring table`);
+                    rows_sc.forEach((row, idx) => {
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length > 2) {
+                            // Column 3 (index 2) is "Total Expenditure (III)"
+                            const expenditureText = cells[2].textContent.trim();
+                            // Remove commas and other formatting, keep only digits and decimal point
+                            const cleanText = expenditureText.replace(/[^0-9.]/g, '');
+                            const expenditure = parseFloat(cleanText) || 0;
+                            totalExpenditureFromSC += expenditure;
+                            console.log(`  SC Row ${idx + 1} Expenditure: "${expenditureText}" => ${expenditure}`);
+                        }
+                    });
+                }
+            }
+        } else if (lowerTableType.includes('non')) {
+            // Non-Recurring
+            const scTable = document.getElementById('thubTgsComparisonTableNonRecurring');
+            if (scTable) {
+                const tbody_sc = scTable.querySelector('tbody');
+                if (tbody_sc) {
+                    const rows_sc = tbody_sc.querySelectorAll('tr');
+                    console.log(`Found ${rows_sc.length} rows in SC Non-Recurring table`);
+                    rows_sc.forEach((row, idx) => {
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length > 2) {
+                            // Column 3 (index 2) is "Total Expenditure (III)"
+                            const expenditureText = cells[2].textContent.trim();
+                            // Remove commas and other formatting, keep only digits and decimal point
+                            const cleanText = expenditureText.replace(/[^0-9.]/g, '');
+                            const expenditure = parseFloat(cleanText) || 0;
+                            totalExpenditureFromSC += expenditure;
+                            console.log(`  SC Row ${idx + 1} Expenditure: "${expenditureText}" => ${expenditure}`);
+                        }
+                    });
+                }
+            }
+        }
+        console.log(`Total Expenditure from SC (${lowerTableType}): ${totalExpenditureFromSC}`);
+        
+        // Calculate expenditure half once to use consistently in all cells
+        const expenditureHalf = totalExpenditureFromSC / 2;
+        console.log(`Expenditure Half (for all tables): ${expenditureHalf}`);
+        
+        // Create rows for each data entry
+        dataList.forEach((data, rowIndex) => {
+            console.log(`Creating ${tableType} row ${rowIndex + 1}:`, data);
+            
+            const newRow = document.createElement('tr');
+            
+            // Create 9 cells: 0-2 empty, 3-5 Grant received, 6-8 separate vertical cells
+            for (let j = 0; j < 9; j++) {
+                const td = document.createElement('td');
+                
+                if (j === 3) {
+                    // Column 3: "Sanction No. (I)"
+                    td.textContent = data.sanction_number || '';
+                    console.log(`  Cell ${j} (Sanction No.): "${td.textContent}"`);
+                } else if (j === 4) {
+                    // Column 4: "Date (ii)"
+                    td.textContent = '';
+                    console.log(`  Cell ${j} (Date): ""`);
+                } else if (j === 5) {
+                    // Column 5: "Amount (iii)"
+                    td.classList.add('vertical-cell');
+                    td.textContent = data.amount ? formatCurrency(data.amount) : '';
+                    console.log(`  Cell ${j} (Amount - vertical): "${td.textContent}"`);
+                } else if (j === 6) {
+                    // Column 6: "Total Available funds" - Show total in first row, empty in others
+                    td.classList.add('vertical-cell');
+                    if (rowIndex === 0) {
+                        td.textContent = formatCurrency(totalAmount);
+                        console.log(`  Cell ${j} (Total Available funds - sum): "${td.textContent}"`);
+                    } else {
+                        td.textContent = '';
+                        console.log(`  Cell ${j} (Total Available funds - empty): ""`);
+                    }
+                } else if (j === 7) {
+                    // Column 7: "Expenditure incurred" - Show total from SC divided by 2 in first row, empty in others
+                    td.classList.add('vertical-cell');
+                    if (rowIndex === 0) {
+                        td.textContent = formatCurrency(expenditureHalf);
+                        console.log(`  Cell ${j} (Expenditure - sum from SC / 2): "${td.textContent}"`);
+                    } else {
+                        td.textContent = '';
+                        console.log(`  Cell ${j} (Expenditure - empty): ""`);
+                    }
+                } else if (j === 8) {
+                    // Column 8: "Closing Balances (5-6)" - Calculate: Total Available funds - Expenditure incurred
+                    td.classList.add('vertical-cell');
+                    if (rowIndex === 0) {
+                        const closingBalance = Math.abs(totalAmount - expenditureHalf);
+                        td.textContent = formatCurrency(closingBalance);
+                        console.log(`  Cell ${j} (Closing Balance): ${totalAmount} - ${expenditureHalf} = ${closingBalance}`);
+                    } else {
+                        td.textContent = '';
+                        console.log(`  Cell ${j} (Closing Balance - empty): ""`);
+                    }
+                } else {
+                    // Other columns (0-2): empty
+                    td.textContent = '';
+                }
+                
+                newRow.appendChild(td);
+            }
+            
+            tbody.appendChild(newRow);
+            console.log(`${tableType} row ${rowIndex + 1} appended`);
+        });
+        
+        console.log(`Final ${tableType} tbody has ${tbody.querySelectorAll('tr').length} rows`);
+        
+        // Also populate Component wise utilization table with the same expenditure value
+        if (dataList.length > 0) {
+            console.log(`Populating component table with expenditureHalf: ${expenditureHalf}`);
+            
+            // Use different component table IDs for Recurring and Non-Recurring
+            const componentTableId = lowerTableType.includes('recurring') && !lowerTableType.includes('non') 
+                ? 'ucComponentTable' 
+                : 'ucComponentNonRecurringTable';
+            
+            const componentTable = document.getElementById(componentTableId);
+            if (componentTable) {
+                const componentTbody = componentTable.querySelector('tbody');
+                if (componentTbody && componentTbody.querySelector('tr')) {
+                    const cells = componentTbody.querySelector('tr').querySelectorAll('td');
+                    if (cells.length >= 3) {
+                        // Set "Grant-in-aid-Total General" to same value as Expenditure incurred
+                        cells[0].textContent = formatCurrency(expenditureHalf);
+                        console.log(`Cell 0 "Grant-in-aid-Total General" set to: ${formatCurrency(expenditureHalf)}`);
+                        // Set "Grant-in-aid-Salary" to empty or 0
+                        cells[1].textContent = '';
+                        // Set "Total" to same value as Expenditure incurred
+                        cells[2].textContent = formatCurrency(expenditureHalf);
+                        console.log(`Cell 2 "Total" set to: ${formatCurrency(expenditureHalf)}`);
+                        console.log(`Component wise table (${tableType}) populated with same value as Expenditure incurred`);
+                    }
+                }
+            }
+        }
+
+    } catch (error) {
+        console.error(`Error populating ${tableType} table:`, error);
+    }
 }
 
 // Create table from data
@@ -2466,7 +2705,7 @@ function displayTHubTotalsTableNonRecurring(thubTotalsData, toDate) {
     }
 }
 
-// View switching - Document View and Excel View
+// View switching - Document View, UC View, and Excel View
 const viewBtns = document.querySelectorAll('.view-btn');
 viewBtns.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2478,21 +2717,33 @@ viewBtns.forEach(btn => {
         
         // Show/hide view sections
         const documentView = document.getElementById('documentView');
+        const ucView = document.getElementById('ucView');
         const excelView = document.getElementById('excelView');
         const downloadBtn = document.getElementById('downloadBtn');
         const downloadAllDocumentBtn = document.getElementById('downloadAllDocumentBtn');
         
         if (view === 'document') {
             documentView.classList.add('active');
+            ucView.classList.remove('active');
             excelView.classList.remove('active');
             // Show download all button in document view, hide excel download button
             if (downloadBtn) downloadBtn.style.display = 'none';
             if (downloadAllDocumentBtn) downloadAllDocumentBtn.style.display = 'block';
             // Switch to tgsummary tab in document view
             setTimeout(() => switchToTab('tgsummary'), 50);
-        } else {
-            excelView.classList.add('active');
+        } else if (view === 'uc') {
             documentView.classList.remove('active');
+            ucView.classList.add('active');
+            excelView.classList.remove('active');
+            // Show download all button in UC view, hide excel download button
+            if (downloadBtn) downloadBtn.style.display = 'none';
+            if (downloadAllDocumentBtn) downloadAllDocumentBtn.style.display = 'block';
+            // Switch to ucsummary tab in UC view
+            setTimeout(() => switchToTab('ucsummary'), 50);
+        } else {
+            documentView.classList.remove('active');
+            ucView.classList.remove('active');
+            excelView.classList.add('active');
             // Show excel download button, hide document download all button
             if (downloadBtn) downloadBtn.style.display = 'block';
             if (downloadAllDocumentBtn) downloadAllDocumentBtn.style.display = 'none';

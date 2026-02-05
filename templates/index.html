@@ -104,6 +104,9 @@
             <!-- View Toggle -->
             <div class="view-toggle" id="viewToggle">
                 <button class="view-btn active" data-view="document">
+                    <i class="fas fa-file-pdf"></i> SC Rec & Non-Rec<br>(Document View) 
+                </button>
+                <button class="view-btn" data-view="uc">
                     <i class="fas fa-file-pdf"></i> UC Rec & Non-Rec<br>(Document View) 
                 </button>
                 <button class="view-btn" data-view="excel">
@@ -115,10 +118,10 @@
             <div class="view-section active" id="documentView">
                 <div class="tabs">
                     <button class="tab-btn active" data-tab="tgsummary">
-                        <i class="fas fa-table"></i> Overall TG-Wise Exp Recurring
+                        <i class="fas fa-table"></i>SC Exp Recurring
                     </button>
                     <button class="tab-btn" data-tab="tgsummarynonrecurring">
-                        <i class="fas fa-table"></i> Overall TG-Wise Exp Non-Recurring
+                        <i class="fas fa-table"></i>SC Exp Non-Recurring
                     </button>
                 </div>
 
@@ -182,6 +185,156 @@
 
                 <!-- TG-Wise Detailed Tables Section (Non-Recurring) -->
                 <div id="tgDetailedTablesContainerNonRecurring"></div>
+            </div>
+            </div>
+
+            <!-- UC Document View Tabs -->
+            <div class="view-section" id="ucView">
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="ucsummary">
+                        <i class="fas fa-table"></i>UC Exp Recurring
+                    </button>
+                    <button class="tab-btn" data-tab="ucsummarynonrecurring">
+                        <i class="fas fa-table"></i>UC Exp Non-Recurring
+                    </button>
+                </div>
+
+            <div class="tab-content active" id="ucsummary">
+                <!-- UC Template Table -->
+                <div class="uc-template-section">
+                    <div class="table-container">
+                      <table border="1" cellspacing="0" cellpadding="5" class="uc-template-table">
+  <thead>
+    <tr>
+      <th >Unspent Balances of Grants received years [figure as at Sl. No. 3 (iii)]</th>
+      <th >Interest Earned thereon</th>
+      <th >Interest deposited back to the Government</th>
+      <th colspan="3">Grant received during the year</th>
+      <th >Total Available funds (1+2-3+4)</th>
+      <th >Expenditure incurred</th>
+      <th >Closing Balances (5-6)</th>
+    </tr>
+    <tr align="center">
+      <th >1</th>
+      <th>2</th>
+      <th>3</th>
+      <th colspan="3">4</th>
+      <th >5</th>
+      <th >6</th>
+      <th >7</th>
+    </tr>
+    <tr>
+     
+      <th></th>
+      <th></th>
+      <th></th>
+      <th>Sanction No. (I)</th>
+      <th>Date (ii)</th>
+      <th>Amount (iii)</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+
+  </thead>
+  <tbody>
+    <!-- Data rows will be populated here -->
+  </tbody>
+</table>
+                    </div>
+
+                    <!-- Component-wise Utilization Section -->
+                    <div class="component-wise-section" style="margin-top: 30px;">
+                        <h4>Component wise utilization of grants:</h4>
+                        <div class="table-container">
+                            <table class="component-table" id="ucComponentTable">
+                                <thead>
+                                    <tr>
+                                        <th>Grant-in-aid-Total General</th>
+                                        <th>Grant-in-aid-Salary</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="ucsummarynonrecurring">
+                <!-- UC Template Table (Non-Recurring) -->
+                <div class="uc-template-section">
+                    <div class="table-container">
+                      <table border="1" cellspacing="0" cellpadding="5" class="uc-template-table" id="ucNonRecurringTable">
+  <thead>
+    <tr>
+      <th >Unspent Balances of Grants received years [figure as at Sl. No. 3 (iii)]</th>
+      <th >Interest Earned thereon</th>
+      <th >Interest deposited back to the Government</th>
+      <th colspan="3">Grant received during the year</th>
+      <th >Total Available funds (1+2-3+4)</th>
+      <th >Expenditure incurred</th>
+      <th >Closing Balances (5-6)</th>
+    </tr>
+    <tr align="center">
+      <th >1</th>
+      <th>2</th>
+      <th>3</th>
+      <th colspan="3">4</th>
+      <th >5</th>
+      <th >6</th>
+      <th >7</th>
+    </tr>
+
+    <tr>     
+      <th></th>
+      <th></th>
+      <th></th>
+      <th>Sanction No. (I)</th>
+      <th>Date (ii)</th>
+      <th>Amount (iii)</th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+
+  </thead>
+  <tbody id="ucNonRecurringTableBody">
+    <!-- Data rows will be populated here -->
+  </tbody>
+</table>
+                    </div>
+
+                    <!-- Component-wise Utilization Section -->
+                    <div class="component-wise-section" style="margin-top: 30px;">
+                        <h4>Component wise utilization of grants:</h4>
+                        <div class="table-container">
+                            <table class="component-table" id="ucComponentNonRecurringTable">
+                                <thead>
+                                    <tr>
+                                        <th>Grant-in-aid-Total General</th>
+                                        <th>Grant-in-aid-Salary</th>
+                                        <th>Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
             </div>
 

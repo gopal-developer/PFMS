@@ -979,6 +979,116 @@
             }
         }
    
+        /* UC Template Tables */
+        .uc-template-section {
+            margin-bottom: 40px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 20px;
+            background: white;
+        }
 
+        .uc-template-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            direction: ltr;
+            border: 1px solid var(--border);
+        }
 
-            
+        .uc-template-table thead {
+            background: #f8f9fa;
+        }
+
+        .uc-template-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid var(--border);
+            color: var(--dark);
+            font-size: 13px;
+        }
+
+        .uc-template-table td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .uc-template-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Component-wise Utilization Table */
+        .component-wise-section {
+            margin-top: 30px;
+        }
+
+        .component-wise-section h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 15px;
+        }
+
+        .component-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid var(--border);
+        }
+
+        .component-table thead {
+            background: #f8f9fa;
+        }
+
+        .component-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid var(--border);
+            color: var(--dark);
+            font-size: 13px;
+        }
+
+        .component-table td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .component-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* UC Table - Vertical borders for last three columns (separate cells) */
+        .uc-template-table thead th:nth-child(7),
+        .uc-template-table thead th:nth-child(8),
+        .uc-template-table thead th:nth-child(9) {
+            border-left: 2px solid #000;
+        }
+
+        /* Data cells - Only vertical borders, no horizontal borders */
+        .uc-template-table tbody td:nth-child(7),
+        .uc-template-table tbody td:nth-child(8),
+        .uc-template-table tbody td:nth-child(9) {
+            border-left: 2px solid #000;
+            border-top: none;
+            border-bottom: none;
+        }
+
+        /* Vertical cell styling */
+        .uc-template-table tbody td.vertical-cell {
+            text-align: center;
+            vertical-align: middle;
+            padding: 10px 5px;
+            min-height: 120px;
+            display: table-cell;
+        }
+
+        /* Center content in column 6 (Total Available funds) */
+        .uc-template-table tbody td:nth-child(6) {
+            text-align: center;
+            vertical-align: middle;
+        }
