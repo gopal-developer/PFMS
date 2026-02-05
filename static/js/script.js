@@ -1096,28 +1096,60 @@ function downloadAllTGTables() {
     // Check which tab button is active to determine which sheet to download
     const allTabButtons = document.querySelectorAll('.tab-btn');
     let isNonRecurringActive = false;
+    let isUCTab = false;
     
-    // Find the active tab button and check if it's the Non-Recurring tab
+    // Find the active tab button and check if it's the Non-Recurring tab or UC tab
     allTabButtons.forEach(btn => {
-        if (btn.classList.contains('active') && btn.dataset.tab === 'tgsummarynonrecurring') {
-            isNonRecurringActive = true;
+        if (btn.classList.contains('active')) {
+            const tabId = btn.dataset.tab;
+            // Check if it's a UC tab
+            if (tabId === 'ucsummary' || tabId === 'ucsummarynonrecurring') {
+                isUCTab = true;
+                if (tabId === 'ucsummarynonrecurring') {
+                    isNonRecurringActive = true;
+                }
+            }
+            // Check if it's a TG Non-Recurring tab
+            else if (tabId === 'tgsummarynonrecurring') {
+                isNonRecurringActive = true;
+            }
         }
     });
     
-    if (isNonRecurringActive) {
-        // Download Non-Recurring data
-        if (!allTGDetailedDataNonRecurring || allTGDetailedDataNonRecurring.length === 0) {
-            showAlert('No TG Non-Recurring data available to download', 'error');
-            return;
+    if (isUCTab) {
+        // Download UC data based on whether Non-Recurring is active
+        if (isNonRecurringActive) {
+            // Download Non-Recurring UC data
+            if (!allUCDetailedDataNonRecurring || allUCDetailedDataNonRecurring.length === 0) {
+                showAlert('No UC Non-Recurring data available to download', 'error');
+                return;
+            }
+            showFormatSelectionDialog('uc-nonrecurring');
+        } else {
+            // Download Recurring UC data (default)
+            if (!allUCDetailedData || allUCDetailedData.length === 0) {
+                showAlert('No UC Recurring data available to download', 'error');
+                return;
+            }
+            showFormatSelectionDialog('uc-recurring');
         }
-        showFormatSelectionDialog('tg-nonrecurring');
     } else {
-        // Download Recurring data (default)
-        if (!allTGDetailedData || allTGDetailedData.length === 0) {
-            showAlert('No TG Recurring data available to download', 'error');
-            return;
+        // Download TG data (for backward compatibility)
+        if (isNonRecurringActive) {
+            // Download Non-Recurring data
+            if (!allTGDetailedDataNonRecurring || allTGDetailedDataNonRecurring.length === 0) {
+                showAlert('No TG Non-Recurring data available to download', 'error');
+                return;
+            }
+            showFormatSelectionDialog('tg-nonrecurring');
+        } else {
+            // Download Recurring data (default)
+            if (!allTGDetailedData || allTGDetailedData.length === 0) {
+                showAlert('No TG Recurring data available to download', 'error');
+                return;
+            }
+            showFormatSelectionDialog('tg-recurring');
         }
-        showFormatSelectionDialog('tg-recurring');
     }
 }
 
@@ -1163,6 +1195,10 @@ function showFormatSelectionDialog(tableType = 'tg') {
         descText += 'TG-Wise Exp Recurring';
     } else if (tableType === 'tg-nonrecurring') {
         descText += 'TG-Wise Exp Non-Recurring';
+    } else if (tableType === 'uc-recurring') {
+        descText += 'UC Exp Recurring';
+    } else if (tableType === 'uc-nonrecurring') {
+        descText += 'UC Exp Non-Recurring';
     } else {
         descText += 'TG';
     }
@@ -1205,6 +1241,10 @@ function showFormatSelectionDialog(tableType = 'tg') {
                 downloadTGRecurringInFormat(format.action);
             } else if (tableType === 'tg-nonrecurring') {
                 downloadTGNonRecurringInFormat(format.action);
+            } else if (tableType === 'uc-recurring') {
+                downloadUCRecurringInFormat(format.action);
+            } else if (tableType === 'uc-nonrecurring') {
+                downloadUCNonRecurringInFormat(format.action);
             } else {
                 downloadTGTablesInFormat(format.action);
             }
@@ -1676,6 +1716,108 @@ function downloadTGNonRecurringInFormat(format) {
         document.body.removeChild(link);
         
         showAlert(`TG-Wise Exp Non-Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error downloading file. Please try again.', 'error');
+    });
+}
+
+// Download UC Recurring data in specified format
+function downloadUCRecurringInFormat(format) {
+    if (!allUCDetailedData || allUCDetailedData.length === 0) {
+        showAlert('No UC Recurring data available to download', 'error');
+        return;
+    }
+    
+    // Prepare all table data to send
+    const downloadData = {
+        ucTables: allUCDetailedData
+    };
+    
+    // Send request to backend with format
+    fetch('/download-tg-tables', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            format: format,
+            data: downloadData,
+            sheetType: 'recurring',
+            isUC: true
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Download failed');
+        return response.blob();
+    })
+    .then(blob => {
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Set filename based on format
+        const filename = `UC_Exp_Recurring.${getFileExtension(format)}`;
+        link.download = filename;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert(`UC Exp Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error downloading file. Please try again.', 'error');
+    });
+}
+
+// Download UC Non-Recurring data in specified format
+function downloadUCNonRecurringInFormat(format) {
+    if (!allUCDetailedDataNonRecurring || allUCDetailedDataNonRecurring.length === 0) {
+        showAlert('No UC Non-Recurring data available to download', 'error');
+        return;
+    }
+    
+    // Prepare all table data to send
+    const downloadData = {
+        ucTables: allUCDetailedDataNonRecurring
+    };
+    
+    // Send request to backend with format
+    fetch('/download-tg-tables', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            format: format,
+            data: downloadData,
+            sheetType: 'nonrecurring',
+            isUC: true
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Download failed');
+        return response.blob();
+    })
+    .then(blob => {
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        
+        // Set filename based on format
+        const filename = `UC_Exp_Non-Recurring.${getFileExtension(format)}`;
+        link.download = filename;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert(`UC Exp Non-Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
     })
     .catch(error => {
         console.error('Error:', error);

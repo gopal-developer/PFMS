@@ -1029,34 +1029,52 @@ def download():
 
 @app.route('/download-tg-tables', methods=['POST'])
 def download_tg_tables():
-    """Download TG tables in selected format (Excel, PDF, or Word)"""
+    """Download TG or UC tables in selected format (Excel, PDF, or Word)"""
     try:
         data = request.get_json()
         format_type = data.get('format', 'excel')
-        tg_data = data.get('data', [])
+        table_data = data.get('data', [])
         sheet_type = data.get('sheetType', 'all')  # 'recurring', 'nonrecurring', or 'all'
+        is_uc = data.get('isUC', False)  # Flag to indicate if this is UC data
         
-        if not tg_data:
-            return jsonify({'error': 'No TG data provided'}), 400
+        if not table_data:
+            return jsonify({'error': 'No data provided'}), 400
         
-        # Determine filename based on sheet type
-        if sheet_type == 'recurring':
-            base_filename = 'TG-Wise_Exp_Recurring'
-        elif sheet_type == 'nonrecurring':
-            base_filename = 'TG-Wise_Exp_Non-Recurring'
+        # Determine filename based on sheet type and whether it's UC or TG
+        if is_uc:
+            if sheet_type == 'recurring':
+                base_filename = 'UC_Exp_Recurring'
+            elif sheet_type == 'nonrecurring':
+                base_filename = 'UC_Exp_Non-Recurring'
+            else:
+                base_filename = 'All_UC_Detailed_Tables'
         else:
-            base_filename = 'All_TG_Detailed_Tables'
+            if sheet_type == 'recurring':
+                base_filename = 'TG-Wise_Exp_Recurring'
+            elif sheet_type == 'nonrecurring':
+                base_filename = 'TG-Wise_Exp_Non-Recurring'
+            else:
+                base_filename = 'All_TG_Detailed_Tables'
         
         if format_type == 'excel':
-            output = generate_tg_excel(tg_data)
+            if is_uc:
+                output = generate_uc_excel(table_data)
+            else:
+                output = generate_tg_excel(table_data)
             filename = f'{base_filename}.xlsx'
             mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         elif format_type == 'pdf':
-            output = generate_tg_pdf(tg_data)
+            if is_uc:
+                output = generate_uc_pdf(table_data)
+            else:
+                output = generate_tg_pdf(table_data)
             filename = f'{base_filename}.pdf'
             mimetype = 'application/pdf'
         elif format_type == 'word':
-            output = generate_tg_word(tg_data)
+            if is_uc:
+                output = generate_uc_word(table_data)
+            else:
+                output = generate_tg_word(table_data)
             filename = f'{base_filename}.docx'
             mimetype = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         else:
@@ -1069,10 +1087,121 @@ def download_tg_tables():
             download_name=filename
         )
     except Exception as e:
-        print(f"Error downloading TG tables: {e}")
+        print(f"Error downloading tables: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+# UC Excel, PDF, and Word generation functions (simplified - reuse TG functions for now)
+def generate_uc_excel(uc_data):
+    """Generate UC tables in Excel format"""
+    # For now, we can create a simple excel with the UC data
+    # This converts the UC data to a format similar to TG data
+    wb = Workbook()
+    ws = wb.active
+    ws.title = 'UC Data'
+    
+    # Add headers
+    if isinstance(uc_data, dict) and uc_data.get('ucTables'):
+        uc_tables = uc_data.get('ucTables', [])
+        
+        # If it's a list of UC tables, create sheets for each
+        if isinstance(uc_tables, list) and len(uc_tables) > 0:
+            wb.remove(ws)
+            
+            for idx, uc_table in enumerate(uc_tables):
+                ws = wb.create_sheet(f'UC Data {idx + 1}' if idx > 0 else 'UC Data')
+                
+                if isinstance(uc_table, dict):
+                    # Add table data
+                    row = 1
+                    for key, value in uc_table.items():
+                        ws.cell(row=row, column=1).value = str(key)
+                        ws.cell(row=row, column=2).value = str(value)
+                        row += 1
+    
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output
+
+def generate_uc_pdf(uc_data):
+    """Generate UC tables in PDF format"""
+    # Create a simple PDF with UC data
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
+    
+    c.setTitle("UC Data Export")
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(50, height - 50, "UC Utilization Certificate Data")
+    
+    c.setFont("Helvetica", 12)
+    y_position = height - 100
+    
+    if isinstance(uc_data, dict) and uc_data.get('ucTables'):
+        uc_tables = uc_data.get('ucTables', [])
+        
+        if isinstance(uc_tables, list):
+            for idx, uc_table in enumerate(uc_tables):
+                if isinstance(uc_table, dict):
+                    c.drawString(50, y_position, f"UC Table {idx + 1}:")
+                    y_position -= 20
+                    
+                    for key, value in uc_table.items():
+                        c.drawString(70, y_position, f"{key}: {value}")
+                        y_position -= 15
+                        
+                        if y_position < 50:
+                            c.showPage()
+                            c.setFont("Helvetica", 12)
+                            y_position = height - 50
+                    
+                    y_position -= 20
+    
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+def generate_uc_word(uc_data):
+    """Generate UC tables in Word format"""
+    doc = Document()
+    
+    # Add title
+    title = doc.add_heading('UC Utilization Certificate Data', 0)
+    title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    
+    if isinstance(uc_data, dict) and uc_data.get('ucTables'):
+        uc_tables = uc_data.get('ucTables', [])
+        
+        if isinstance(uc_tables, list):
+            for idx, uc_table in enumerate(uc_tables):
+                doc.add_heading(f'UC Table {idx + 1}', level=2)
+                
+                if isinstance(uc_table, dict):
+                    table = doc.add_table(rows=len(uc_table) + 1, cols=2)
+                    table.style = 'Light Grid Accent 1'
+                    
+                    # Add headers
+                    hdr_cells = table.rows[0].cells
+                    hdr_cells[0].text = 'Field'
+                    hdr_cells[1].text = 'Value'
+                    
+                    # Add data
+                    for row_idx, (key, value) in enumerate(uc_table.items(), 1):
+                        cells = table.rows[row_idx].cells
+                        cells[0].text = str(key)
+                        cells[1].text = str(value)
+                
+                doc.add_paragraph()  # Add spacing between tables
+    
+    output = io.BytesIO()
+    doc.save(output)
+    output.seek(0)
+    return output
 
 @app.route('/download-thub-tables', methods=['POST'])
 def download_thub_tables():
