@@ -256,7 +256,7 @@ function downloadTGSummary(data) {
             if (value === null || value === undefined) value = '';
             // Escape quotes and wrap in quotes if needed
             if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-                value = '"' + value.replace(/"/g, '""') + '"';
+                value = '"' + value.replace(/"/g, '""') + '"'; 
             }
             return value;
         });
@@ -955,49 +955,78 @@ Total,${totals.total_funds_released},${totals.total_expenditure},${totals.balanc
 
 // Download T-Hub Totals as PDF
 function downloadTHubTotalsPDF(totals, toDate) {
-    // This will be similar to TG PDF download
-    const docContent = `
-    <html>
-    <head>
-        <title>T-Hub Expenditure Totals</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 40px; }
-            h1 { color: #0066CC; }
-            table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-            th, td { border: 1px solid #CCCCCC; padding: 12px; text-align: right; }
-            th { background-color: #FFFFFF; font-weight: bold; }
-            td:first-child, th:first-child { text-align: left; }
-        </style>
-    </head>
-    <body>
-        <h1>T-Hub - Expenditure Totals</h1>
-        <table>
-            <thead>
-                <tr>
-                    <th>Sanctioned Head (I)</th>
-                    <th>Total Funds Released (II)</th>
-                    <th>Total Expenditure (III)</th>
-                    <th>Balance as on (${toDate}) (VI = II - III)</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Recurring</td>
-                    <td>${formatCurrency(totals.total_funds_released)}</td>
-                    <td>${formatCurrency(totals.total_expenditure)}</td>
-                    <td>${formatCurrency(totals.balance)}</td>
-                </tr>
-                <tr style="font-weight: bold; background-color: #e3f2fd;">
-                    <td>Total</td>
-                    <td>${formatCurrency(totals.total_funds_released)}</td>
-                    <td>${formatCurrency(totals.total_expenditure)}</td>
-                    <td>${formatCurrency(totals.balance)}</td>
-                </tr>
-            </tbody>
-        </table>
-    </body>
-    </html>
-    `;
+    const docContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>T-Hub Expenditure Totals</title>
+    <style>
+        ${getProStyleSheet()}
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="header-line">GENERAL FINANCIAL RULES 2017</div>
+    <div class="header-normal">Ministry of Finance - Department of Expenditure</div>
+    <h1 style="margin-top: 12pt; margin-bottom: 12pt;">T-Hub Wise Expenditure Summary</h1>
+    <p style="text-align: center; font-weight: bold; margin-bottom: 12pt;">As on: ${toDate}</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Sanctioned Head (I)</th>
+                <th style="text-align: right;">Total Funds Released (II)</th>
+                <th style="text-align: right;">Total Expenditure (III)</th>
+                <th style="text-align: right;">Balance as on (VI = II - III)</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Recurring</td>
+                <td style="text-align: right;">${formatCurrency(totals.total_funds_released || 0)}</td>
+                <td style="text-align: right;">${formatCurrency(totals.total_expenditure || 0)}</td>
+                <td style="text-align: right;">${formatCurrency(totals.balance || 0)}</td>
+                <td></td>
+            </tr>
+            <tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td style="text-align: right;"><strong>${formatCurrency(totals.total_funds_released || 0)}</strong></td>
+                <td style="text-align: right;"><strong>${formatCurrency(totals.total_expenditure || 0)}</strong></td>
+                <td style="text-align: right;"><strong>${formatCurrency(totals.balance || 0)}</strong></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="sig-section">
+        <div class="date-place">
+            <div>Date: _______________________</div>
+            <div style="margin-top: 6pt;">Place: _______________________</div>
+        </div>
+        
+        <div class="signature-block">
+            <div class="signature-item">
+                <div class="signature-line"></div>
+                <p class="signature-name"><strong>Signature</strong></p>
+                <p class="signature-name" style="margin-top: 3pt;">Name..................................</p>
+                <p class="signature-name">Chief Finance Officer</p>
+            </div>
+            <div class="signature-item">
+                <div class="signature-line"></div>
+                <p class="signature-name"><strong>Signature</strong></p>
+                <p class="signature-name" style="margin-top: 3pt;">Name..................................</p>
+                <p class="signature-name">Head of the Organisation</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer-note">
+        <p>Document generated automatically. Requires official signatures and seals.</p>
+    </div>
+</div>
+</body>
+</html>`;
     
     const newWindow = window.open('', 'Print-Window');
     newWindow.document.open();
@@ -1005,16 +1034,105 @@ function downloadTHubTotalsPDF(totals, toDate) {
     newWindow.document.close();
     setTimeout(() => {
         newWindow.print();
-        newWindow.close();
-    }, 250);
+    }, 500);
     
-    showAlert('T-Hub totals PDF prepared for printing!', 'success');
+    showAlert('T-Hub Totals PDF prepared for printing. Use print dialog to save as PDF.', 'success');
 }
 
 // Download T-Hub Totals as Word
 function downloadTHubTotalsWord(totals, toDate) {
-    // For simplicity, fallback to CSV format
-    downloadTHubTotalsCSV(totals, toDate);
+    const docContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>T-Hub Expenditure Totals</title>
+    <style>
+        ${getProStyleSheet()}
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="header-line">GENERAL FINANCIAL RULES 2017</div>
+    <div class="header-normal">Ministry of Finance - Department of Expenditure</div>
+    <h1 style="margin-top: 12pt; margin-bottom: 12pt;">T-Hub Wise Expenditure Summary</h1>
+    <p style="text-align: center; font-weight: bold; margin-bottom: 12pt;">As on: ${toDate}</p>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Sanctioned Head (I)</th>
+                <th style="text-align: right;">Total Funds Released (II)</th>
+                <th style="text-align: right;">Total Expenditure (III)</th>
+                <th style="text-align: right;">Balance as on (VI = II - III)</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Recurring</td>
+                <td style="text-align: right;">${formatCurrency(totals.total_funds_released || 0)}</td>
+                <td style="text-align: right;">${formatCurrency(totals.total_expenditure || 0)}</td>
+                <td style="text-align: right;">${formatCurrency(totals.balance || 0)}</td>
+                <td></td>
+            </tr>
+            <tr class="total-row">
+                <td><strong>Total</strong></td>
+                <td style="text-align: right;"><strong>${formatCurrency(totals.total_funds_released || 0)}</strong></td>
+                <td style="text-align: right;"><strong>${formatCurrency(totals.total_expenditure || 0)}</strong></td>
+                <td style="text-align: right;"><strong>${formatCurrency(totals.balance || 0)}</strong></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div class="sig-section">
+        <div class="date-place">
+            <div>Date: _______________________</div>
+            <div style="margin-top: 6pt;">Place: _______________________</div>
+        </div>
+        
+        <div class="signature-block">
+            <div class="signature-item">
+                <div class="signature-line"></div>
+                <p class="signature-name"><strong>Signature</strong></p>
+                <p class="signature-name" style="margin-top: 3pt;">Name..................................</p>
+                <p class="signature-name">Chief Finance Officer</p>
+            </div>
+            <div class="signature-item">
+                <div class="signature-line"></div>
+                <p class="signature-name"><strong>Signature</strong></p>
+                <p class="signature-name" style="margin-top: 3pt;">Name..................................</p>
+                <p class="signature-name">Head of the Organisation</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer-note">
+        <p>Document generated automatically. Requires official signatures and seals.</p>
+    </div>
+</div>
+</body>
+</html>`;
+    
+    try {
+        const docHeader = `<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><style>${getProStyleSheet()}</style></head><body>`;
+        const docFooter = `</body></html>`;
+        
+        const fullDoc = docHeader + docContent.substring(docContent.indexOf('<div class="page">'), docContent.indexOf('</div>\n</body>') + 6) + docFooter;
+        
+        const blob = new Blob([fullDoc], { type: 'application/msword' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `T-Hub_Expenditure_Totals_${toDate.replace(/\//g, '-')}.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showAlert('T-Hub Totals Word document downloaded', 'success');
+    } catch (err) {
+        console.error('Error generating Word document:', err);
+        showAlert('Error generating Word document: ' + err.message, 'error');
+    }
 }
 
 // Download TG PDF
@@ -1060,6 +1178,155 @@ async function downloadTGPDF(data, toDate) {
         console.error('Error downloading PDF:', error);
         showAlert('Error downloading PDF: ' + error.message, 'error');
     }
+}
+
+// ===== PROFESSIONAL STYLING HELPER FUNCTION =====
+// Returns professional CSS styling matching GFR 12-A official document format
+function getProStyleSheet() {
+    return `
+        @page { size: A4; margin: 0.75in; }
+        @media print {
+            body { margin: 0; padding: 0; }
+            .page { page-break-after: auto; }
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { 
+            width: 100%; 
+            height: 100%;
+            font-family: 'Times New Roman', Times, serif;
+            color: #000000;
+        }
+        body { 
+            padding: 0.75in;
+            line-height: 1.15;
+            font-size: 12pt;
+        }
+        .page { width: 100%; padding-bottom: 20pt; }
+        h1, h2, h3 { font-family: 'Times New Roman', Times, serif; margin-bottom: 12pt; }
+        h1 { font-size: 14pt; font-weight: bold; text-align: center; }
+        h2 { font-size: 13pt; font-weight: bold; margin-top: 12pt; }
+        h3 { font-size: 12pt; font-weight: bold; margin-top: 10pt; }
+        p { font-size: 12pt; margin-bottom: 6pt; text-align: justify; line-height: 1.15; }
+        ol, ul { margin-bottom: 6pt; margin-left: 0.25in; padding-left: 0.25in; font-size: 12pt; }
+        li { margin-bottom: 3pt; text-align: justify; line-height: 1.15; }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 6pt;
+            margin-bottom: 6pt;
+            border: 1pt solid #000000;
+            font-size: 11pt;
+        }
+        th {
+            border: 1pt solid #000000;
+            padding: 4pt 4pt 4pt 4pt;
+            text-align: left;
+            background-color: #ffffff;
+            font-weight: bold;
+            font-size: 11pt;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        td {
+            border: 1pt solid #000000;
+            padding: 4pt 4pt 4pt 4pt;
+            text-align: left;
+            vertical-align: top;
+            font-size: 11pt;
+            font-family: 'Times New Roman', Times, serif;
+        }
+        .header-line {
+            text-align: center;
+            font-size: 12pt;
+            margin-bottom: 0pt;
+            font-weight: bold;
+        }
+        .header-normal {
+            text-align: center;
+            font-size: 12pt;
+            margin-bottom: 0pt;
+            font-weight: normal;
+        }
+        .form-gfr {
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            margin-top: 6pt;
+            margin-bottom: 0pt;
+        }
+        .form-rule {
+            text-align: center;
+            font-size: 11pt;
+            font-weight: normal;
+            margin-bottom: 6pt;
+        }
+        .form-title {
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 6pt;
+        }
+        .uc-header {
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            margin-top: 6pt;
+            margin-bottom: 3pt;
+            line-height: 1.15;
+        }
+        .grants-text {
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            margin-bottom: 12pt;
+        }
+        .section-title {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-top: 12pt;
+            margin-bottom: 6pt;
+        }
+        .sig-section {
+            margin-top: 36pt;
+            padding-top: 12pt;
+            border-top: 1pt solid #000000;
+        }
+        .date-place {
+            margin-bottom: 24pt;
+            font-size: 12pt;
+        }
+        .signature-block {
+            display: table;
+            width: 100%;
+            margin-top: 12pt;
+        }
+        .signature-item {
+            display: table-cell;
+            width: 50%;
+            text-align: center;
+            vertical-align: top;
+            padding: 0 10pt;
+        }
+        .signature-line {
+            border-top: 1pt solid #000000;
+            width: 160pt;
+            height: 20pt;
+            margin: 0 auto 6pt auto;
+        }
+        .signature-name {
+            font-size: 11pt;
+            line-height: 1.15;
+            margin-top: 0pt;
+        }
+        .footer-note {
+            margin-top: 18pt;
+            padding-top: 6pt;
+            border-top: 1pt solid #000000;
+            font-size: 11pt;
+            text-align: center;
+        }
+        .total-row { font-weight: bold; background-color: #e3f2fd; }
+        .highlight-bg { background-color: #f5f5f5; }
+    `;
 }
 
 // Download TG Detailed Table as CSV
@@ -1747,7 +2014,7 @@ function downloadTGNonRecurringInFormat(format) {
 
 // Download UC Recurring data in specified format
 function downloadUCRecurringInFormat(format) {
-    // Prefer client-side generation for PDF/Word
+    // Prefer client-side generation for PDF/Word to avoid backend dependency
     if (format === 'pdf' || format === 'word') {
         generateUCDocument('recurring', format);
         return;
@@ -1766,12 +2033,66 @@ function downloadUCNonRecurringInFormat(format) {
     showAlert('UC documents are available only in PDF or Word from this interface', 'error');
 }
 
+// Send UC data to backend endpoint which populates the .docx template and returns docx or pdf
+async function downloadUCFromBackend(type = 'recurring', format = 'docx') {
+    try {
+        const ucData = (type === 'recurring') ? allUCDetailedData : allUCDetailedDataNonRecurring;
+        if (!ucData || ucData.length === 0) {
+            showAlert('No UC data available to download.', 'error');
+            return;
+        }
+
+        const payload = {
+            type: type,
+            uc_data: ucData,
+            to_date: toDateValue ? toDateValue.textContent : '',
+            format: (format === 'pdf') ? 'pdf' : 'docx'
+        };
+
+        const resp = await fetch('/download-uc-document', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => null);
+            console.error('UC download error', err || resp.statusText);
+            showAlert('Failed to generate UC document on server.', 'error');
+            return;
+        }
+
+        const blob = await resp.blob();
+        const contentType = resp.headers.get('Content-Type') || '';
+        const ext = contentType.includes('pdf') ? 'pdf' : 'docx';
+        const filename = `UC_${type === 'recurring' ? 'Recurring' : 'NonRecurring'}_${(toDateValue ? toDateValue.textContent : '').replace(/\//g, '-')}.${ext}`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+
+        showAlert(`UC ${type} downloaded as ${ext.toUpperCase()}`, 'success');
+    } catch (err) {
+        console.error(err);
+        showAlert('Error downloading UC document.', 'error');
+    }
+}
+
 // Generate UC document (client-side) for Recurring or Non-Recurring
 function generateUCDocument(type = 'recurring', format = 'pdf') {
     try {
         const toDate = toDateValue.textContent || 'dd-mm-yyyy';
         const schemeName = 'National Quantum Mission (4262)';
         const grantTypeText = (type === 'recurring') ? 'Recurring' : 'Non-recurring';
+        const componentLabel = (type === 'recurring') ? 
+            'Grant-in-aid– Total General' : 'Grant-in-aid–creation of capital assets';
 
         // Select the main UC table and component table based on type
         let ucTable = null;
@@ -1784,81 +2105,223 @@ function generateUCDocument(type = 'recurring', format = 'pdf') {
             componentTable = document.getElementById('ucComponentNonRecurringTable');
         }
 
-        const ucTableHTML = ucTable ? ucTable.outerHTML : '<table><tbody><tr><td>No UC table data</td></tr></tbody></table>';
-        const componentTableHTML = componentTable ? componentTable.outerHTML : '';
+        // Clone and clean the tables to embed properly
+        let ucTableHTML = '';
+        if (ucTable) {
+            const clonedTable = ucTable.cloneNode(true);
+            // Add styling to the cloned table
+            clonedTable.style.borderCollapse = 'collapse';
+            clonedTable.style.width = '100%';
+            clonedTable.style.tableLayout = 'fixed';
+            clonedTable.style.marginTop = '6pt';
+            clonedTable.style.marginBottom = '6pt';
+            clonedTable.style.border = '1pt solid #000000';
+            clonedTable.style.fontSize = '11pt';
+            
+            // Style all cells
+            clonedTable.querySelectorAll('th, td').forEach(cell => {
+                cell.style.border = '1pt solid #000000';
+                cell.style.padding = '4pt';
+                cell.style.textAlign = 'left';
+                cell.style.verticalAlign = 'top';
+                cell.style.fontFamily = 'Times New Roman, Times, serif';
+                cell.style.fontSize = '11pt';
+                cell.style.wordBreak = 'break-word';
+                cell.style.overflowWrap = 'break-word';
+                cell.style.whiteSpace = 'normal';
+            });
+            
+            ucTableHTML = clonedTable.outerHTML;
+        } else {
+            ucTableHTML = '<p>No UC table data</p>';
+        }
+        
+        let componentTableHTML = '';
+        if (componentTable) {
+            const clonedComponentTable = componentTable.cloneNode(true);
+            // Add styling to the cloned table
+            clonedComponentTable.style.borderCollapse = 'collapse';
+            clonedComponentTable.style.width = '100%';
+            clonedComponentTable.style.tableLayout = 'fixed';
+            clonedComponentTable.style.marginTop = '6pt';
+            clonedComponentTable.style.marginBottom = '6pt';
+            clonedComponentTable.style.border = '1pt solid #000000';
+            clonedComponentTable.style.fontSize = '11pt';
+            
+            // Style all cells
+            clonedComponentTable.querySelectorAll('th, td').forEach(cell => {
+                cell.style.border = '1pt solid #000000';
+                cell.style.padding = '4pt';
+                cell.style.textAlign = 'left';
+                cell.style.verticalAlign = 'top';
+                cell.style.fontFamily = 'Times New Roman, Times, serif';
+                cell.style.fontSize = '11pt';
+                cell.style.wordBreak = 'break-word';
+                cell.style.overflowWrap = 'break-word';
+                cell.style.whiteSpace = 'normal';
+            });
+            
+            componentTableHTML = clonedComponentTable.outerHTML;
+        } else {
+            componentTableHTML = '<p>No component data</p>';
+        }
 
-        // Build document HTML using the provided template text
-        const docContent = `
-        <html>
-        <head>
-            <meta charset="utf-8"/>
-            <title>Utilization Certificate - ${grantTypeText}</title>
-            <style>
-                body { font-family: Arial, sans-serif; margin: 40px; color: #111; }
-                h1 { text-align: center; font-size: 18px; }
-                h2 { text-align: center; font-size: 16px; }
-                .meta { margin-top: 20px; }
-                table { border-collapse: collapse; width: 100%; margin-top: 12px; }
-                th, td { border: 1px solid #333; padding: 8px; text-align: left; }
-                .center { text-align: center; }
-                .signature { margin-top: 40px; display:flex; justify-content: space-between; }
-                .sig-block { width: 45%; }
-            </style>
-        </head>
-        <body>
-            <h1>GENERAL FINANCIAL RULES 2017</h1>
-            <h2>Ministry of Finance<br/>Department of Expenditure</h2>
-            <h2>GFR 12 – A<br/>[(See Rule 238 (1)]<br/>FORM OF UTILIZATION CERTIFICATE</h2>
-            <h2>UTILIZATION CERTIFICATE FOR THE YEAR 2025-26 (till ${toDate}) in respect of ${grantTypeText.toLowerCase()}</h2>
-            <p><strong>GRANTS-IN-AID/SALARIES/CREATION OF CAPITAL ASSETS</strong></p>
-            <ol>
-                <li>Name of the Scheme: ${schemeName}</li>
-                <li>Whether recurring or non-recurring grants: ${grantTypeText}</li>
-                <li>Grants position at the beginning of the Financial year
-                    <ul>
-                        <li>(i) Cash in Hand/Bank: Rs.</li>
-                        <li>(ii) Unadjusted advances: Rs.</li>
-                        <li>(iii) Total: Rs.</li>
-                    </ul>
-                </li>
-            </ol>
+        // Build professional document HTML matching the GFR templates (header, ribbon, emblem, footer)
+        const docContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Utilization Certificate - ${grantTypeText}</title>
+    <style>
+        @page { size: A4; margin: 1cm 1.2cm; }
+        html, body { height:100%; }
+        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; margin: 0; padding: 0.9in 0.85in; color: #000; }
+        .page { width: 100%; position: relative; box-sizing: border-box; }
 
-            <h3>Details of grants received, expenditure incurred and closing balances: (Actuals)</h3>
-            ${ucTableHTML}
+        /* Header layout similar to provided templates */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10pt;
+        }
+        .ribbon-left {
+            width: 120px;
+            height: 40px;
+            background: #9fe06a; /* light green */
+            color: #fff;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:700;
+            font-size:12px;
+        }
+        .header-center { flex: 1; padding-left: 12px; }
+        .gfr-box {
+            background: #cff9a6; /* pale green */
+            padding: 6px 12px;
+            display:flex;
+            align-items:center;
+            gap:12px;
+            border-radius:2px;
+        }
+        .gfr-text { font-weight:700; font-size:11px; text-align:left; }
+        .emblem { width:56px; height:56px; background: #fff; display:inline-block; }
 
-            <h3>Component wise utilization of grants:</h3>
-            ${componentTableHTML}
+        .form-title-area { text-align:center; margin-top:6pt; margin-bottom:6pt; }
+        .form-gfr { font-weight:700; font-size:14pt; }
+        .form-sub { font-size:10pt; margin-top:3pt; }
+        .uc-header { font-weight:700; font-size:12pt; margin-top:8pt; text-align:center; }
 
-            <h3>Details of grants position at the end of the year</h3>
-            <p>(i) Cash in Hand/Bank: Rs.<br/>(ii) Unadjusted Advances: Rs.<br/>(iii) Total: Rs.</p>
+        /* Main text and lists */
+        .content ol, .content ul { margin-left: 0.8in; margin-bottom:6pt; }
+        .content p { margin-bottom:6pt; text-align: justify; }
 
-            <h3>Declaration</h3>
-            <p>Certified that I have satisfied myself that the conditions on which grants were sanctioned have been duly fulfilled / are being fulfilled and that I have exercised following checks to see that the money has been actually utilized for the purpose for which it was sanctioned:</p>
-            <ol>
-                <li>The main accounts and other subsidiary accounts and registers (including assets registers) are maintained as prescribed in the relevant Act/Rules/Standing instructions and have been duly audited by designated auditors. The figures depicted above tally with the audited figures mentioned in financial statements/accounts.</li>
-                <li>There exist internal controls for safeguarding public funds/assets, watching outcomes and achievements of physical targets against the financial inputs, ensuring quality in asset creation etc. & the periodic evaluation of internal controls is exercised to ensure their effectiveness.</li>
-                <li>To the best of our knowledge and belief, no transactions have been entered that are in violation of relevant Act/Rules/standing instructions and scheme guidelines.</li>
-                <li>The responsibilities among the key functionaries for execution of the scheme have been assigned in clear terms and are not general in nature.</li>
-                <li>The benefits were extended to the intended beneficiaries and only such areas/districts were covered where the scheme was intended to operate.</li>
-                <li>The expenditure on various components of the scheme was in the proportions authorized as per the scheme guidelines and terms and conditions of the grants-in-aid.</li>
-                <li>It has been ensured that the physical and financial performance under the National Quantum Mission scheme has been according to the requirements, as prescribed in the guidelines issued by Govt. of India and the performance/targets achieved statement for the year to which the utilization of the fund resulted in outcomes given at Annexure – I duly enclosed.</li>
-                <li>The utilization of the fund resulted in outcomes given at Annexure – II duly enclosed.</li>
-                <li>Details of various schemes executed by the agency through grants-in-aid received from the same Ministry or from other Ministries is enclosed at Annexure –II.</li>
-            </ol>
+        /* Tables similar to template */
+        table { width:100%; border-collapse: collapse; font-size:11pt; margin-top:6pt; table-layout: fixed; }
+        th, td { border:1pt solid #000; padding:4pt; vertical-align:top; word-break: break-word; overflow-wrap: break-word; word-wrap: break-word; }
+        th { background:#fff; font-weight:700; }
 
-            <div class="signature">
-                <div class="sig-block">
-                    <p>Signature</p>
-                    <p>Name.............................................<br/>Chief Finance Officer<br/>(Head of the Finance)</p>
-                </div>
-                <div class="sig-block">
-                    <p>Signature</p>
-                    <p>Name..........................................<br/>Head of the Organisation</p>
+        /* Component box style */
+        .component-box { width: 60%; margin-top: 8pt; border:1pt solid #000; }
+        .component-box td { padding:6pt; }
+
+        /* Signature area */
+        .sig-section { margin-top:28pt; padding-top:6pt; }
+        .signature-block { display:flex; justify-content:space-between; gap:10px; }
+        .signature-item { width:48%; text-align:center; }
+        .signature-line { border-top:1pt solid #000; width: 180px; margin: 0 auto 6pt; height:12pt; }
+
+        /* Footer - page number */
+        .page-footer { position: fixed; bottom: 12pt; left: 0; right: 0; text-align:center; font-size:10pt; }
+        .page-footer:after { content: "Page " counter(page); }
+
+        /* Ensure printed pages break correctly */
+        .page { page-break-after: always; padding-bottom: 40pt; }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="header">
+        <div class="ribbon-left">FORM GFR 12A</div>
+        <div class="header-center">
+            <div class="gfr-box">
+                <div style="text-align:left;">
+                    <div class="gfr-text">GENERAL FINANCIAL RULES 2017</div>
+                    <div style="font-size:10px;">Ministry of Finance<br/>Department of Expenditure</div>
                 </div>
             </div>
-        </body>
-        </html>
-        `;
+        </div>
+        <div style="text-align:right;">
+            <div class="gfr-box">
+                <div style="text-align:right; font-size:10px;">FORM GFR 12A</div>
+                <div class="emblem" aria-hidden="true"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-title-area">
+        <div class="form-gfr">GFR 12 - A</div>
+        <div class="form-sub">(See Rule 238 (1))</div>
+        <div style="margin-top:6pt; font-weight:700;">FORM OF UTILIZATION CERTIFICATE</div>
+        <div style="font-size:11pt; margin-top:6pt;">UTILIZATION CERTIFICATE FOR THE YEAR 2025-26 (till ${toDate}) in respect of ${grantTypeText}</div>
+    </div>
+
+    <div class="content">
+        <ol>
+            <li><strong>Name of the Scheme:</strong> ${schemeName}</li>
+            <li><strong>Whether recurring or non-recurring grants:</strong> ${grantTypeText}</li>
+            <li><strong>Grants position at the beginning of the Financial year</strong>
+                <ul>
+                    <li>(i) Cash in Hand/Bank: Rs. ______________________</li>
+                    <li>(ii) Unadjusted advances: Rs. ______________________</li>
+                    <li>(iii) Total: Rs. ______________________</li>
+                </ul>
+            </li>
+        </ol>
+
+        <div class="section-title" style="font-weight:700; margin-top:6pt;">Details of grants received, expenditure incurred and closing balances: (Actuals)</div>
+        ${ucTableHTML}
+
+        <div class="section-title" style="font-weight:700; margin-top:8pt;">Component wise utilization of grants:</div>
+        ${componentTableHTML}
+
+        <div style="margin-top:8pt;">Details of grants position at the end of the year<br/>(i) Cash in Hand/Bank: Rs.<br/>(ii) Unadjusted Advances: Rs.<br/>(iii) Total: Rs.</div>
+
+        <div class="section-title" style="font-weight:700; margin-top:12pt;">CERTIFICATION</div>
+        <p>Certified that I have satisfied myself that the conditions on which grants were sanctioned have been duly fulfilled / are being fulfilled and that I have exercised following checks to see that the money has been actually utilized for the purpose for which it was sanctioned:</p>
+
+        <ol>
+            <li>The main accounts and other subsidiary accounts and registers (including assets registers) are maintained as prescribed in the relevant Act/Rules/Standing instructions and have been duly audited by designated auditors. The figures depicted above tally with the audited figures mentioned in financial statements/accounts.</li>
+            <li>There exist internal controls for safeguarding public funds/assets, watching outcomes and achievements of physical targets against the financial inputs, ensuring quality in asset creation etc. & the periodic evaluation of internal controls is exercised to ensure their effectiveness.</li>
+            <li>To the best of our knowledge and belief, no transactions have been entered that are in violation of relevant Act/Rules/standing instructions and scheme guidelines.</li>
+        </ol>
+
+        <div class="sig-section">
+            <div style="margin-top:12pt;">Date: _______________________</div>
+            <div style="margin-top:6pt;">Place: _______________________</div>
+
+            <div class="signature-block">
+                <div class="signature-item">
+                    <div class="signature-line"></div>
+                    <div style="margin-top:4pt;">Name..................................</div>
+                    <div>Chief Finance Officer</div>
+                </div>
+                <div class="signature-item">
+                    <div class="signature-line"></div>
+                    <div style="margin-top:4pt;">Name..................................</div>
+                    <div>Head of the Organisation</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:10pt; font-size:10pt;">(Strike out inapplicable terms)</div>
+    </div>
+
+    <div class="page-footer"></div>
+</div>
+</body>
+</html>`;
 
         if (format === 'pdf') {
             const newWindow = window.open('', '_blank');
@@ -1867,17 +2330,78 @@ function generateUCDocument(type = 'recurring', format = 'pdf') {
             newWindow.document.close();
             setTimeout(() => {
                 newWindow.print();
-            }, 300);
-            showAlert(`UC ${grantTypeText} PDF prepared for printing`, 'success');
+            }, 500);
+            showAlert(`UC ${grantTypeText} prepared for printing. Use print dialog to save as PDF.`, 'success');
             return;
         }
 
         if (format === 'word') {
-            // Create .doc (HTML) file
-            const blob = new Blob([docContent], { type: 'application/msword' });
+            // Create .doc (HTML) file for MS Word with comprehensive styling
+            const wordStyles = `
+                <style>
+                    * { margin: 0; padding: 0; }
+                    body { 
+                        font-family: 'Times New Roman', Times, serif; 
+                        margin: 0.75in; 
+                        font-size: 12pt; 
+                        line-height: 1.15;
+                    }
+                    table { 
+                        border-collapse: collapse; 
+                        width: 100%; 
+                        margin: 6pt 0; 
+                        border: 1pt solid #000;
+                        table-layout: fixed;
+                    }
+                    th, td { 
+                        border: 1pt solid #000; 
+                        padding: 4pt; 
+                        font-size: 11pt;
+                        font-family: 'Times New Roman', Times, serif;
+                        word-break: break-word;
+                        overflow-wrap: break-word;
+                        word-wrap: break-word;
+                        white-space: normal;
+                    }
+                    th { 
+                        font-weight: bold; 
+                        background-color: #fff;
+                    }
+                    h1, h2, h3 { 
+                        font-family: 'Times New Roman', Times, serif;
+                    }
+                    .page { width: 100%; }
+                    .section-title { 
+                        font-size: 12pt; 
+                        font-weight: bold; 
+                        margin-top: 12pt; 
+                        margin-bottom: 6pt;
+                    }
+                    p { 
+                        font-size: 12pt; 
+                        margin-bottom: 6pt;
+                        line-height: 1.15;
+                    }
+                    ol, ul { 
+                        margin-bottom: 6pt; 
+                        margin-left: 0.25in; 
+                        padding-left: 0.25in;
+                    }
+                    li { 
+                        margin-bottom: 3pt; 
+                        line-height: 1.15;
+                    }
+                </style>
+            `;
+            const docHeader = `<html xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">${wordStyles}</head><body>`;
+            const docFooter = `</body></html>`;
+            
+            const fullDoc = docHeader + docContent.substring(docContent.indexOf('<body>') + 6, docContent.indexOf('</body>')) + docFooter;
+            
+            const blob = new Blob([fullDoc], { type: 'application/msword' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
-            link.download = `Utilization_Certificate_${type === 'recurring' ? 'Recurring' : 'Non-Recurring'}.doc`;
+            link.download = `Utilization_Certificate_${type === 'recurring' ? 'Recurring' : 'Non-Recurring'}_${toDate.replace(/\//g, '-')}.doc`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -1887,7 +2411,7 @@ function generateUCDocument(type = 'recurring', format = 'pdf') {
 
     } catch (err) {
         console.error('Error generating UC document:', err);
-        showAlert('Error generating UC document', 'error');
+        showAlert('Error generating UC document: ' + err.message, 'error');
     }
 }
 

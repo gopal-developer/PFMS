@@ -13,6 +13,14 @@ from reportlab.lib.units import inch, mm
 from docx import Document
 from docx.shared import Pt, RGBColor, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+try:
+    from docx2pdf import convert as docx2pdf_convert
+except Exception:
+    docx2pdf_convert = None
+try:
+    from docxtpl import DocxTemplate
+except Exception:
+    DocxTemplate = None
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 
@@ -1091,6 +1099,212 @@ def download_tg_tables():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+# ===== UC DOCUMENT DOWNLOAD ENDPOINTS =====
+@app.route('/download-uc-document', methods=['POST'])
+def download_uc_document():
+    """
+    Download UC document (Recurring or Non-Recurring) using docxtpl template.
+    Uses GFR_12A.docx for Recurring and GFR_12B.docx for Non-Recurring.
+    Supports Word (.docx) or PDF (.pdf) output formats.
+    """
+    try:
+        data = request.get_json()
+        uc_type = data.get('type', 'recurring')  # 'recurring' or 'nonrecurring'
+        uc_data = data.get('uc_data', [])
+        to_date = data.get('to_date', 'DD/MM/YYYY')
+        out_format = data.get('format', 'docx')  # 'docx' or 'pdf'
+        
+        grant_type_text = 'Recurring' if uc_type == 'recurring' else 'Non-Recurring'
+        print(f"Generating UC {grant_type_text} document with {len(uc_data)} entries in {out_format} format")
+        
+        # Select template file (GFR_12A for Recurring, GFR_12B for Non-Recurring)
+        template_filename = 'GFR_12A.docx' if uc_type == 'recurring' else 'GFR_12B.docx'
+        template_path = os.path.join(app.root_path, template_filename)
+        
+        # Verify template exists
+        if not os.path.exists(template_path):
+            print(f"ERROR: Template {template_filename} not found at {template_path}")
+            return jsonify({'error': f'Template file {template_filename} not found'}), 400
+        
+        # Load template using docxtpl if available, otherwise use python-docx
+        if DocxTemplate is not None:
+            print(f"Using docxtpl to load template {template_filename}")
+            doc_template = DocxTemplate(template_path)
+            
+            # Prepare context data for template rendering
+            # The template should have placeholders like {{ to_date }}, {{ grant_type }}, etc.
+            # And table placeholders like {% for row in uc_rows %} ... {% endfor %}
+            
+            uc_rows = []
+            total_amount = 0
+            total_expenditure = 0
+            
+            # Process UC data into rows
+            for entry in uc_data:
+                try:
+                    amount = float(entry.get('amount', 0) or 0)
+                    expenditure = float(entry.get('expenditure', 0) or 0)
+                    total_amount += amount
+                    total_expenditure += expenditure
+                    
+                    uc_row = {
+                        'sanction_number': entry.get('sanction_number', ''),
+                        'amount': format_currency(amount),
+                        'amount_num': amount,
+                        'total_available': format_currency(entry.get('total_available', 0)),
+                        'expenditure': format_currency(expenditure),
+                        'expenditure_num': expenditure,
+                        'closing_balance': format_currency(entry.get('closing_balance', 0)),
+                        'closing_balance_num': entry.get('closing_balance', 0)
+                    }
+                    uc_rows.append(uc_row)
+                except Exception as row_err:
+                    print(f"Warning: Failed to process UC row {entry}: {row_err}")
+                    continue
+            
+            # Calculate totals
+            balance = total_amount - total_expenditure
+            
+            # Prepare context dictionary for template
+            context = {
+                'to_date': to_date,
+                'grant_type': grant_type_text,
+                'uc_rows': uc_rows,
+                'total_amount': format_currency(total_amount),
+                'total_amount_num': total_amount,
+                'total_expenditure': format_currency(total_expenditure),
+                'total_expenditure_num': total_expenditure,
+                'balance': format_currency(balance),
+                'balance_num': balance,
+                'uc_count': len(uc_rows)
+            }
+            
+            print(f"Context prepared: {len(uc_rows)} rows, totals - Amount: {total_amount}, Expend: {total_expenditure}")
+            
+            # Render template with data
+            doc_template.render(context)
+            
+            # Save to buffer
+            output = io.BytesIO()
+            doc_template.save(output)
+            output.seek(0)
+        else:
+            # Fallback to plain python-docx if docxtpl not available
+            print(f"docxtpl not available, using python-docx fallback for {template_filename}")
+            doc = Document(template_path)
+            
+            # Attempt to replace placeholders in template manually
+            for paragraph in doc.paragraphs:
+                if '{TO_DATE}' in paragraph.text:
+                    paragraph.text = paragraph.text.replace('{TO_DATE}', to_date)
+                if '{GRANT_TYPE}' in paragraph.text:
+                    paragraph.text = paragraph.text.replace('{GRANT_TYPE}', grant_type_text)
+            
+            # Try to find and populate any tables in the document
+            if uc_data and len(doc.tables) > 0:
+                uc_table = doc.tables[0]
+                # Clear existing rows (keep header)
+                while len(uc_table.rows) > 1:
+                    tr = uc_table.rows[1]._tr
+                    uc_table._tbl.remove(tr)
+                
+                # Add UC data rows
+                for entry in uc_data:
+                    new_row = uc_table.add_row()
+                    cells = new_row.cells
+                    if len(cells) > 0:
+                        cells[0].text = entry.get('sanction_number', '')
+                    if len(cells) > 1:
+                        cells[1].text = format_currency(entry.get('amount', 0))
+                    if len(cells) > 2:
+                        cells[2].text = format_currency(entry.get('expenditure', 0))
+            
+            output = io.BytesIO()
+            doc.save(output)
+            output.seek(0)
+        
+        # Handle format conversion
+        if out_format and out_format.lower() == 'pdf':
+            # Convert docx to PDF if requested
+            if docx2pdf_convert is None:
+                print("WARNING: docx2pdf not available, returning .docx instead of PDF")
+                # Fallback to docx
+                filename = f'UC_{grant_type_text.replace(" ", "_")}_{to_date.replace("/", "-")}.docx'
+                return send_file(
+                    output,
+                    mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    as_attachment=True,
+                    download_name=filename
+                )
+            
+            # Attempt PDF conversion
+            import tempfile
+            try:
+                # Save .docx to temp file
+                with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp_docx:
+                    tmp_docx_path = tmp_docx.name
+                    tmp_docx.write(output.getvalue())
+                    tmp_docx.flush()
+                
+                tmp_pdf_path = tmp_docx_path.replace('.docx', '.pdf')
+                
+                # Convert using docx2pdf
+                try:
+                    docx2pdf_convert(tmp_docx_path, tmp_pdf_path)
+                    
+                    # Read PDF and send
+                    with open(tmp_pdf_path, 'rb') as pdf_file:
+                        pdf_data = pdf_file.read()
+                    
+                    pdf_output = io.BytesIO(pdf_data)
+                    pdf_output.seek(0)
+                    
+                    filename = f'UC_{grant_type_text.replace(" ", "_")}_{to_date.replace("/", "-")}.pdf'
+                    return send_file(
+                        pdf_output,
+                        mimetype='application/pdf',
+                        as_attachment=True,
+                        download_name=filename
+                    )
+                finally:
+                    # Cleanup temp files
+                    try:
+                        os.remove(tmp_docx_path)
+                    except:
+                        pass
+                    try:
+                        os.remove(tmp_pdf_path)
+                    except:
+                        pass
+            except Exception as pdf_err:
+                print(f"PDF conversion error: {pdf_err}. Returning .docx instead.")
+                # Fallback to docx
+                output.seek(0)
+                filename = f'UC_{grant_type_text.replace(" ", "_")}_{to_date.replace("/", "-")}.docx'
+                return send_file(
+                    output,
+                    mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    as_attachment=True,
+                    download_name=filename
+                )
+        
+        # Default: return Word document (.docx)
+        filename = f'UC_{grant_type_text.replace(" ", "_")}_{to_date.replace("/", "-")}.docx'
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            as_attachment=True,
+            download_name=filename
+        )
+    
+    except Exception as e:
+        print(f"Error in download_uc_document: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to generate UC document: {str(e)}'}), 500
+
 
 # UC Excel, PDF, and Word generation functions (simplified - reuse TG functions for now)
 def generate_uc_excel(uc_data):
