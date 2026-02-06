@@ -234,6 +234,9 @@ let allComparisonTableData = []; // Store T-Hub & TGs Comparison table data
 let allComparisonTableDataNonRecurring = []; // Store T-Hub & TGs Comparison table data for non-recurring
 let allThubSummaryData = []; // Store T-Hub-Wise summary data
 let allThubSummaryDataNonRecurring = []; // Store T-Hub-Wise summary data for non-recurring
+// UC global storage
+let allUCDetailedData = [];
+let allUCDetailedDataNonRecurring = [];
 
 // Download TG Summary Table as CSV
 function downloadTGSummary(data) {
@@ -523,6 +526,9 @@ function populateUCData(ucData) {
         }
         
         const totalCount = recurringData.length + nonRecurringData.length;
+        // Store UC data globally for download checks
+        allUCDetailedData = recurringData;
+        allUCDetailedDataNonRecurring = nonRecurringData;
         if (totalCount > 0) {
             showAlert(`${recurringData.length} Recurring and ${nonRecurringData.length} Non-Recurring UC data entries populated`, 'success');
         }
@@ -1212,11 +1218,18 @@ function showFormatSelectionDialog(tableType = 'tg') {
     buttonContainer.style.gap = '10px';
     buttonContainer.style.flexDirection = 'column';
     
-    const formats = [
+    // For UC downloads only allow PDF and Word; otherwise allow all formats
+    let formats = [
         { name: 'Excel', icon: '📊', action: 'excel' },
         { name: 'PDF', icon: '📄', action: 'pdf' },
         { name: 'Word', icon: '📃', action: 'word' }
     ];
+    if (tableType === 'uc-recurring' || tableType === 'uc-nonrecurring') {
+        formats = [
+            { name: 'PDF', icon: '📄', action: 'pdf' },
+            { name: 'Word', icon: '📃', action: 'word' }
+        ];
+    }
     
     formats.forEach(format => {
         const btn = document.createElement('button');
@@ -1242,9 +1255,18 @@ function showFormatSelectionDialog(tableType = 'tg') {
             } else if (tableType === 'tg-nonrecurring') {
                 downloadTGNonRecurringInFormat(format.action);
             } else if (tableType === 'uc-recurring') {
-                downloadUCRecurringInFormat(format.action);
+                // UC downloads: generate client-side PDF/Word
+                if (format.action === 'pdf' || format.action === 'word') {
+                    generateUCDocument('recurring', format.action);
+                } else {
+                    showAlert('UC documents are available only in PDF or Word format', 'error');
+                }
             } else if (tableType === 'uc-nonrecurring') {
-                downloadUCNonRecurringInFormat(format.action);
+                if (format.action === 'pdf' || format.action === 'word') {
+                    generateUCDocument('nonrecurring', format.action);
+                } else {
+                    showAlert('UC documents are available only in PDF or Word format', 'error');
+                }
             } else {
                 downloadTGTablesInFormat(format.action);
             }
@@ -1725,104 +1747,148 @@ function downloadTGNonRecurringInFormat(format) {
 
 // Download UC Recurring data in specified format
 function downloadUCRecurringInFormat(format) {
-    if (!allUCDetailedData || allUCDetailedData.length === 0) {
-        showAlert('No UC Recurring data available to download', 'error');
+    // Prefer client-side generation for PDF/Word
+    if (format === 'pdf' || format === 'word') {
+        generateUCDocument('recurring', format);
         return;
     }
-    
-    // Prepare all table data to send
-    const downloadData = {
-        ucTables: allUCDetailedData
-    };
-    
-    // Send request to backend with format
-    fetch('/download-tg-tables', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            format: format,
-            data: downloadData,
-            sheetType: 'recurring',
-            isUC: true
-        })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Download failed');
-        return response.blob();
-    })
-    .then(blob => {
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Set filename based on format
-        const filename = `UC_Exp_Recurring.${getFileExtension(format)}`;
-        link.download = filename;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showAlert(`UC Exp Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error downloading file. Please try again.', 'error');
-    });
+
+    showAlert('UC documents are available only in PDF or Word from this interface', 'error');
 }
 
 // Download UC Non-Recurring data in specified format
 function downloadUCNonRecurringInFormat(format) {
-    if (!allUCDetailedDataNonRecurring || allUCDetailedDataNonRecurring.length === 0) {
-        showAlert('No UC Non-Recurring data available to download', 'error');
+    if (format === 'pdf' || format === 'word') {
+        generateUCDocument('nonrecurring', format);
         return;
     }
-    
-    // Prepare all table data to send
-    const downloadData = {
-        ucTables: allUCDetailedDataNonRecurring
-    };
-    
-    // Send request to backend with format
-    fetch('/download-tg-tables', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            format: format,
-            data: downloadData,
-            sheetType: 'nonrecurring',
-            isUC: true
-        })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error('Download failed');
-        return response.blob();
-    })
-    .then(blob => {
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Set filename based on format
-        const filename = `UC_Exp_Non-Recurring.${getFileExtension(format)}`;
-        link.download = filename;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showAlert(`UC Exp Non-Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error downloading file. Please try again.', 'error');
-    });
+
+    showAlert('UC documents are available only in PDF or Word from this interface', 'error');
+}
+
+// Generate UC document (client-side) for Recurring or Non-Recurring
+function generateUCDocument(type = 'recurring', format = 'pdf') {
+    try {
+        const toDate = toDateValue.textContent || 'dd-mm-yyyy';
+        const schemeName = 'National Quantum Mission (4262)';
+        const grantTypeText = (type === 'recurring') ? 'Recurring' : 'Non-recurring';
+
+        // Select the main UC table and component table based on type
+        let ucTable = null;
+        let componentTable = null;
+        if (type === 'recurring') {
+            ucTable = document.querySelector('table.uc-template-table:not(#ucNonRecurringTable)');
+            componentTable = document.getElementById('ucComponentTable');
+        } else {
+            ucTable = document.getElementById('ucNonRecurringTable');
+            componentTable = document.getElementById('ucComponentNonRecurringTable');
+        }
+
+        const ucTableHTML = ucTable ? ucTable.outerHTML : '<table><tbody><tr><td>No UC table data</td></tr></tbody></table>';
+        const componentTableHTML = componentTable ? componentTable.outerHTML : '';
+
+        // Build document HTML using the provided template text
+        const docContent = `
+        <html>
+        <head>
+            <meta charset="utf-8"/>
+            <title>Utilization Certificate - ${grantTypeText}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; color: #111; }
+                h1 { text-align: center; font-size: 18px; }
+                h2 { text-align: center; font-size: 16px; }
+                .meta { margin-top: 20px; }
+                table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+                th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+                .center { text-align: center; }
+                .signature { margin-top: 40px; display:flex; justify-content: space-between; }
+                .sig-block { width: 45%; }
+            </style>
+        </head>
+        <body>
+            <h1>GENERAL FINANCIAL RULES 2017</h1>
+            <h2>Ministry of Finance<br/>Department of Expenditure</h2>
+            <h2>GFR 12 – A<br/>[(See Rule 238 (1)]<br/>FORM OF UTILIZATION CERTIFICATE</h2>
+            <h2>UTILIZATION CERTIFICATE FOR THE YEAR 2025-26 (till ${toDate}) in respect of ${grantTypeText.toLowerCase()}</h2>
+            <p><strong>GRANTS-IN-AID/SALARIES/CREATION OF CAPITAL ASSETS</strong></p>
+            <ol>
+                <li>Name of the Scheme: ${schemeName}</li>
+                <li>Whether recurring or non-recurring grants: ${grantTypeText}</li>
+                <li>Grants position at the beginning of the Financial year
+                    <ul>
+                        <li>(i) Cash in Hand/Bank: Rs.</li>
+                        <li>(ii) Unadjusted advances: Rs.</li>
+                        <li>(iii) Total: Rs.</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <h3>Details of grants received, expenditure incurred and closing balances: (Actuals)</h3>
+            ${ucTableHTML}
+
+            <h3>Component wise utilization of grants:</h3>
+            ${componentTableHTML}
+
+            <h3>Details of grants position at the end of the year</h3>
+            <p>(i) Cash in Hand/Bank: Rs.<br/>(ii) Unadjusted Advances: Rs.<br/>(iii) Total: Rs.</p>
+
+            <h3>Declaration</h3>
+            <p>Certified that I have satisfied myself that the conditions on which grants were sanctioned have been duly fulfilled / are being fulfilled and that I have exercised following checks to see that the money has been actually utilized for the purpose for which it was sanctioned:</p>
+            <ol>
+                <li>The main accounts and other subsidiary accounts and registers (including assets registers) are maintained as prescribed in the relevant Act/Rules/Standing instructions and have been duly audited by designated auditors. The figures depicted above tally with the audited figures mentioned in financial statements/accounts.</li>
+                <li>There exist internal controls for safeguarding public funds/assets, watching outcomes and achievements of physical targets against the financial inputs, ensuring quality in asset creation etc. & the periodic evaluation of internal controls is exercised to ensure their effectiveness.</li>
+                <li>To the best of our knowledge and belief, no transactions have been entered that are in violation of relevant Act/Rules/standing instructions and scheme guidelines.</li>
+                <li>The responsibilities among the key functionaries for execution of the scheme have been assigned in clear terms and are not general in nature.</li>
+                <li>The benefits were extended to the intended beneficiaries and only such areas/districts were covered where the scheme was intended to operate.</li>
+                <li>The expenditure on various components of the scheme was in the proportions authorized as per the scheme guidelines and terms and conditions of the grants-in-aid.</li>
+                <li>It has been ensured that the physical and financial performance under the National Quantum Mission scheme has been according to the requirements, as prescribed in the guidelines issued by Govt. of India and the performance/targets achieved statement for the year to which the utilization of the fund resulted in outcomes given at Annexure – I duly enclosed.</li>
+                <li>The utilization of the fund resulted in outcomes given at Annexure – II duly enclosed.</li>
+                <li>Details of various schemes executed by the agency through grants-in-aid received from the same Ministry or from other Ministries is enclosed at Annexure –II.</li>
+            </ol>
+
+            <div class="signature">
+                <div class="sig-block">
+                    <p>Signature</p>
+                    <p>Name.............................................<br/>Chief Finance Officer<br/>(Head of the Finance)</p>
+                </div>
+                <div class="sig-block">
+                    <p>Signature</p>
+                    <p>Name..........................................<br/>Head of the Organisation</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+
+        if (format === 'pdf') {
+            const newWindow = window.open('', '_blank');
+            newWindow.document.open();
+            newWindow.document.write(docContent);
+            newWindow.document.close();
+            setTimeout(() => {
+                newWindow.print();
+            }, 300);
+            showAlert(`UC ${grantTypeText} PDF prepared for printing`, 'success');
+            return;
+        }
+
+        if (format === 'word') {
+            // Create .doc (HTML) file
+            const blob = new Blob([docContent], { type: 'application/msword' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `Utilization_Certificate_${type === 'recurring' ? 'Recurring' : 'Non-Recurring'}.doc`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showAlert(`UC ${grantTypeText} Word document downloaded`, 'success');
+            return;
+        }
+
+    } catch (err) {
+        console.error('Error generating UC document:', err);
+        showAlert('Error generating UC document', 'error');
+    }
 }
 
 // Download all T-Hub tables
