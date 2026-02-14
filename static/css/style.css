@@ -84,7 +84,7 @@
         /* Page Title Section */
         .page-title {
             background: #cee8f3;
-            margin: 20px;
+            margin: 15px 20px 0px 20px;
             border-radius: 30px;
             padding: 10px 30px;
             border-bottom: 3px solid var(--primary);
@@ -112,7 +112,8 @@
             background: white;
             border-bottom: 1px solid var(--border);
             padding: 20px 30px;
-            border-radius: 30px;
+            border-radius: 0px 0px 30px 30px;
+            margin: 0px 20px 0px 20px;
         }
 
         .upload-card {
@@ -325,7 +326,7 @@
             background: white;
             min-height: calc(100vh - 400px);
             padding: 25px 30px;
-            margin-top: 20px;
+            margin: 0px 20px 0px 20px;
         }
 
         .metadata-info {
@@ -569,6 +570,20 @@
             display: block;
         }
 
+        /* Excel View - ensure tables are visible */
+        #excelView .tab-content.active {
+            display: block !important;
+        }
+
+        #excelView .tab-content {
+            display: none !important;
+        }
+
+        #excelView .table-container {
+            display: block !important;
+            visibility: visible !important;
+        }
+
         /* Table */
         .table-container {
             order: 3;
@@ -576,6 +591,7 @@
             border-radius: 6px;
             border: 1px solid var(--border);
             background: white;
+            display: block !important;
         }
 
         .data-table {
@@ -979,13 +995,168 @@
             }
         }
    
-        /* UC Template Tables */
-        .uc-template-section {
-            margin-bottom: 40px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 20px;
-            background: white;
+        /* UC Document View */
+        .uc-doc {
+            max-width: 920px;
+            margin: 0 auto 40px;
+            background: #ffffff;
+            border: 1px solid #cfd8dc;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            padding: 24px 26px;
+            font-family: "Times New Roman", Times, serif;
+            color: #000000;
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        .uc-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .uc-head img {
+            width: 100%;
+            max-width: 900px;
+            height: auto;
+            display: block;
+            object-fit: contain;
+        }
+
+        .uc-ribbon,
+        .uc-form {
+            background: #b9f067;
+            color: #000000;
+            font-weight: 700;
+            font-size: 11px;
+            padding: 6px 10px;
+            text-transform: uppercase;
+            text-align: center;
+            min-width: 110px;
+        }
+
+        .uc-banner {
+            flex: 1;
+            background: #b9f067;
+            padding: 6px 12px;
+        }
+
+        .uc-banner-text {
+            text-align: center;
+            font-weight: 700;
+            font-size: 11px;
+            line-height: 1.2;
+        }
+
+        .uc-banner-text span {
+            display: block;
+            font-weight: 400;
+            font-size: 10px;
+        }
+
+        .uc-title {
+            text-align: center;
+            margin: 10px 0 12px;
+        }
+
+        .uc-title-main {
+            font-size: 14pt;
+            font-weight: 700;
+        }
+
+        .uc-title-sub {
+            font-size: 11pt;
+            margin-top: 2px;
+        }
+
+        .uc-title-form {
+            font-size: 12pt;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+
+        .uc-title-year {
+            font-size: 11pt;
+            margin-top: 6px;
+        }
+
+        .uc-title-grant {
+            font-size: 11pt;
+            margin-top: 4px;
+            font-weight: 700;
+        }
+
+        .uc-list {
+            margin-left: 20px;
+            margin-bottom: 12px;
+            font-size: 11pt;
+            line-height: 1.6;
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .uc-list li {
+            margin-bottom: 8px;
+            text-align: justify;
+            line-height: 1.6;
+            padding-left: 0;
+            margin-left: 0;
+        }
+
+        .uc-section-title + p {
+            font-size: 11pt;
+            line-height: 1.6;
+            text-align: justify;
+            margin-bottom: 12px;
+        }
+
+        .uc-section-title {
+            font-size: 12pt;
+            font-weight: 700;
+            margin: 15px 0 10px;
+            text-align: left;
+            letter-spacing: 0.5px;
+        }
+
+        .uc-end-section {
+            margin-top: 10px;
+            font-size: 12pt;
+            line-height: 1.3;
+        }
+
+        .uc-signatures {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 18px;
+            font-size: 11pt;
+        }
+
+        .uc-sign-left {
+            flex: 1;
+        }
+
+        .uc-sign-right {
+            display: flex;
+            gap: 24px;
+        }
+
+        .uc-sign-block {
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .uc-sign-line {
+            border-top: 1px solid #000000;
+            height: 18px;
+            margin-bottom: 6px;
+        }
+
+        .uc-footnote {
+            margin-top: 10px;
+            font-size: 10pt;
+            text-align: center;
         }
 
         .uc-template-table {
@@ -993,90 +1164,100 @@
             border-collapse: collapse;
             margin-top: 15px;
             direction: ltr;
-            border: 1px solid var(--border);
+            border: 1px solid #000000;
+            table-layout: fixed;
+            word-wrap: break-word;
         }
 
         .uc-template-table thead {
-            background: #f8f9fa;
+            background: #ffffff;
         }
 
         .uc-template-table th {
-            padding: 12px;
-            text-align: left;
-            font-weight: bold;
-            border: 1px solid var(--border);
-            color: var(--dark);
-            font-size: 13px;
+            padding: 8px;
+            text-align: center;
+            font-weight: 700;
+            border: 1px solid #000000;
+            color: #000000;
+            font-size: 11pt;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
         }
 
         .uc-template-table td {
-            padding: 12px;
-            text-align: left;
-            border: 1px solid var(--border);
-            font-size: 13px;
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #000000;
+            font-size: 11pt;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
         }
 
         .uc-template-table tbody tr:hover {
             background: #f8f9fa;
         }
 
-        /* Component-wise Utilization Table */
-        .component-wise-section {
-            margin-top: 30px;
-        }
-
-        .component-wise-section h4 {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--dark);
-            margin-bottom: 15px;
-        }
-
         .component-table {
-            width: 100%;
+            width: 65%;
             border-collapse: collapse;
-            border: 1px solid var(--border);
+            border: 1px solid #000000;
+            table-layout: fixed;
+            word-wrap: break-word;
         }
 
         .component-table thead {
-            background: #f8f9fa;
+            background: #ffffff;
         }
 
         .component-table th {
-            padding: 12px;
-            text-align: left;
-            font-weight: bold;
-            border: 1px solid var(--border);
-            color: var(--dark);
-            font-size: 13px;
+            padding: 8px;
+            text-align: center;
+            font-weight: 700;
+            border: 1px solid #000000;
+            color: #000000;
+            font-size: 11pt;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
         }
 
         .component-table td {
-            padding: 12px;
-            text-align: left;
-            border: 1px solid var(--border);
-            font-size: 13px;
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #000000;
+            font-size: 11pt;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+        }
+
+        @media (max-width: 900px) {
+            .uc-doc {
+                padding: 18px 16px;
+            }
+
+            .component-table {
+                width: 100%;
+            }
+
+            .uc-signatures {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .uc-sign-right {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
 
         .component-table tbody tr:hover {
             background: #f8f9fa;
         }
 
-        /* UC Table - Vertical borders for last three columns (separate cells) */
-        .uc-template-table thead th:nth-child(7),
-        .uc-template-table thead th:nth-child(8),
-        .uc-template-table thead th:nth-child(9) {
-            border-left: 2px solid #000;
-        }
 
-        /* Data cells - Only vertical borders, no horizontal borders */
-        .uc-template-table tbody td:nth-child(7),
-        .uc-template-table tbody td:nth-child(8),
-        .uc-template-table tbody td:nth-child(9) {
-            border-left: 2px solid #000;
-            border-top: none;
-            border-bottom: none;
-        }
 
         /* Vertical cell styling */
         .uc-template-table tbody td.vertical-cell {
@@ -1084,11 +1265,96 @@
             vertical-align: middle;
             padding: 10px 5px;
             min-height: 120px;
-            display: table-cell;
         }
+
+        /* Hide header image when printing/downloading */
+        @media print {
+            .uc-head {
+                display: none !important;
+            }
+        }
+           
 
         /* Center content in column 6 (Total Available funds) */
         .uc-template-table tbody td:nth-child(6) {
             text-align: center;
             vertical-align: middle;
+        }
+
+        /* GFR 12-B Checks Section Styling */
+        .checks-section {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            margin-top: 12px;
+            margin-bottom: 12px;
+        }
+
+        .checks-left {
+            flex: 1;
+        }
+
+        .checks-title {
+            font-size: 12pt;
+            font-weight: 700;
+            margin-bottom: 8px;
+            margin-top: 0;
+        }
+
+        .checks-list {
+            margin-left: 20px;
+            font-size: 12pt;
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .checks-list li {
+            margin-bottom: 6px;
+        }
+
+        .checks-right {
+            flex: 0 0 auto;
+            min-width: 280px;
+            text-align: right;
+        }
+
+        .checks-right p {
+            font-size: 12pt;
+            margin: 0 0 6px 0;
+            line-height: 1.4;
+        }
+
+        /* GFR 12-B Form Styling */
+        .uc-doc > div {
+            margin-bottom: 12px;
+        }
+
+        .uc-doc > div > p {
+            font-size: 12pt;
+            line-height: 1.5;
+            text-align: justify;
+            margin: 8px 0;
+        }
+
+        .uc-doc > div > li {
+            font-size: 12pt;
+            margin-left: 18px;
+            margin-bottom: 6px;
+        }
+
+        .uc-doc div p {
+            font-size: 12pt;
+            line-height: 1.5;
+            text-align: justify;
+            margin: 8px 0;
+        }
+
+        .uc-doc div li {
+            font-size: 12pt;
+            margin-left: 18px;
+            margin-bottom: 4px;
+        }
+
+        .uc-doc > div:has(> p:contains("Kinds")) {
+            margin-top: 8px;
         }

@@ -369,8 +369,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Display results in tables
 function displayResults(preview) {
-    console.log('=== displayResults called ===');
-    console.log('preview object:', preview);
+    console.log('╔═════════════════════════════════════════════════════════════');
+    console.log('║ === displayResults called ===');
+    console.log('║ preview.recurring_summary length:', preview.recurring_summary ? preview.recurring_summary.length : 'undefined/null');
+    console.log('║ preview.institute_split length:', preview.institute_split ? preview.institute_split.length : 'undefined/null');
+    console.log('║ preview.tg_summary_table length:', preview.tg_summary_table ? preview.tg_summary_table.length : 'undefined/null');
+    console.log('║ preview.thub_summary length:', preview.thub_summary ? preview.thub_summary.length : 'undefined/null');
+    console.log('╚═════════════════════════════════════════════════════════════');
     
     // Display metadata if available
     let hasMetadata = false;
@@ -402,21 +407,44 @@ function displayResults(preview) {
         metadataInfo.style.display = 'none';
     }
 
+    updateUCDocumentMeta(preview);
+
     // Recurring summary table
-    createTable('recurringTable', preview.recurring_summary, [
-        'Grant Type', 'Total_Expenditure_Limit', 
-        'Total_Expenditure_Spent', 'Total_Balance'
-    ]);
+    console.log('===== Creating Recurring Summary Table =====');
+    console.log('preview.recurring_summary:', preview.recurring_summary);
+    if (preview.recurring_summary && preview.recurring_summary.length > 0) {
+        console.log('First recurring row keys:', Object.keys(preview.recurring_summary[0]));
+    }
+    try {
+        createTable('recurringTable', preview.recurring_summary, [
+            'Grant Type', 'Total_Expenditure_Limit', 
+            'Total_Expenditure_Spent', 'Total_Balance'
+        ]);
+    } catch (e) {
+        console.error('Error creating recurring table:', e);
+    }
 
     // Institute split table - with explicit column order
-    createTable('splitTable', preview.institute_split, [
-        'TG', 'Child Agency Name',
-        'Recurring - Expenditure Limit', 'Recurring - Expenditure Spent', 'Recurring - Balance',
-        'Non-Recurring - Expenditure Limit', 'Non-Recurring - Expenditure Spent', 'Non-Recurring - Balance'
-    ]);
+    console.log('===== Creating Institute Split Table =====');
+    console.log('preview.institute_split:', preview.institute_split);
+    if (preview.institute_split && preview.institute_split.length > 0) {
+        console.log('First institute_split row keys:', Object.keys(preview.institute_split[0]));
+    }
+    try {
+        createTable('splitTable', preview.institute_split, [
+            'TG', 'Child Agency Name',
+            'Recurring - Expenditure Limit', 'Recurring - Expenditure Spent', 'Recurring - Balance',
+            'Non-Recurring - Expenditure Limit', 'Non-Recurring - Expenditure Spent', 'Non-Recurring - Balance'
+        ]);
+    } catch (e) {
+        console.error('Error creating split table:', e);
+    }
 
     // TG Summary table - with explicit column order
+    console.log('===== Creating TG Summary Table =====');
+    console.log('preview.tg_summary_table:', preview.tg_summary_table);
     if (preview.tg_summary_table && preview.tg_summary_table.length > 0) {
+        console.log('First tg_summary_table row keys:', Object.keys(preview.tg_summary_table[0]));
         currentTGSummaryData = preview.tg_summary_table;
         const tgSummaryColumns = [
             'TG',
@@ -427,10 +455,26 @@ function displayResults(preview) {
             'Non-Recurring - Expenditure Spent',
             'Non-Recurring - Balance'
         ];
-        createTable('tgSummaryTable', preview.tg_summary_table, tgSummaryColumns);
+        
+        // Only create tgSummaryTable if it exists in the DOM
+        const tgSummaryTableElement = document.getElementById('tgSummaryTable');
+        if (tgSummaryTableElement) {
+            try {
+                createTable('tgSummaryTable', preview.tg_summary_table, tgSummaryColumns);
+            } catch (e) {
+                console.error('Error creating tgSummaryTable:', e);
+            }
+        } else {
+            console.warn('tgSummaryTable element not found in DOM, skipping');
+        }
         
         // Also populate the Excel View TG Summary table
-        createTable('tgSummaryTableExcel', preview.tg_summary_table, tgSummaryColumns);
+        console.log('===== Creating TG Summary Table Excel =====');
+        try {
+            createTable('tgSummaryTableExcel', preview.tg_summary_table, tgSummaryColumns);
+        } catch (e) {
+            console.error('Error creating tgSummaryTableExcel:', e);
+        }
         
         // Display T-Hub & TGs comparison table for RECURRING
         displayTHubTgsComparison(preview.tg_summary_table, preview.thub_summary, preview.to_date);
@@ -446,6 +490,8 @@ function displayResults(preview) {
     }
 
     // T-Hub table
+    console.log('===== Creating T-Hub Table =====');
+    console.log('preview.thub_summary:', preview.thub_summary);
     if (preview.thub_summary && preview.thub_summary.length > 0) {
         allTHubData = preview.thub_summary.map(row => ({
             hub: row['Hub'],
@@ -457,10 +503,14 @@ function displayResults(preview) {
             toDate: preview.to_date
         }));
     }
-    createTable('thubTable', preview.thub_summary, [
-        'Hub', 'Assignment Sanction Number', 'Grant Type',
-        'Expenditure_Limit', 'Expenditure_Spent', 'Balance'
-    ]);
+    try {
+        createTable('thubTable', preview.thub_summary, [
+            'Hub', 'Assignment Sanction Number', 'Grant Type',
+            'Expenditure_Limit', 'Expenditure_Spent', 'Balance'
+        ]);
+    } catch (e) {
+        console.error('Error creating thubTable:', e);
+    }
 
     // T-Hub Totals table (displayed above TG tables)
     if (preview.thub_totals) {
@@ -482,7 +532,217 @@ function displayResults(preview) {
         console.log('No UC data in preview');
     }
     
+    // Setup view toggle buttons
+    setupViewToggle();
+    
     console.log('=== displayResults completed ===');
+}
+
+// Setup view toggle functionality
+function setupViewToggle() {
+    const viewToggle = document.getElementById('viewToggle');
+    if (!viewToggle) return;
+    
+    const viewBtns = viewToggle.querySelectorAll('.view-btn');
+    const documentView = document.getElementById('documentView');
+    const ucView = document.getElementById('ucView');
+    const excelView = document.getElementById('excelView');
+    
+    viewBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all buttons and views
+            viewBtns.forEach(b => b.classList.remove('active'));
+            
+            // Remove active class from ALL tab-contents in ALL views
+            if (documentView) {
+                documentView.style.display = 'none';
+                documentView.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            }
+            if (ucView) {
+                ucView.style.display = 'none';
+                ucView.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            }
+            if (excelView) {
+                excelView.style.display = 'none';
+                excelView.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+            }
+            
+            // Add active class to clicked button
+            btn.classList.add('active');
+            
+            // Show corresponding view
+            const view = btn.getAttribute('data-view');
+            if (view === 'document' && documentView) {
+                documentView.style.display = 'block';
+                // Show first tab by default
+                const firstDocTab = documentView.querySelector('.tab-content');
+                if (firstDocTab) firstDocTab.classList.add('active');
+            } else if (view === 'uc' && ucView) {
+                ucView.style.display = 'block';
+                // Show first tab by default
+                const firstUCTab = ucView.querySelector('.tab-content');
+                if (firstUCTab) firstUCTab.classList.add('active');
+            } else if (view === 'excel' && excelView) {
+                excelView.style.display = 'block';
+                // Show first tab by default
+                const firstExcelTab = excelView.querySelector('.tab-content');
+                if (firstExcelTab) {
+                    firstExcelTab.classList.add('active');
+                    firstExcelTab.style.display = 'block'; // Ensure it's displayed
+                    console.log('Excel View activated, first tab displayed');
+                }
+            }
+        });
+    });
+    
+    // Setup tabs within each view
+    setupDocumentViewTabs();
+    setupUCViewTabs();
+    setupExcelViewTabs();
+}
+
+// Setup Document View tabs
+function setupDocumentViewTabs() {
+    const documentView = document.getElementById('documentView');
+    if (!documentView) {
+        console.warn('documentView element not found');
+        return;
+    }
+    
+    // Select only tab elements WITHIN this documentView
+    const tabBtns = documentView.querySelectorAll('.tabs .tab-btn');
+    const tabContents = documentView.querySelectorAll('.tab-content');
+    
+    console.log(`Document View tabs setup - found ${tabBtns.length} buttons and ${tabContents.length} content divs`);
+    
+    tabBtns.forEach((btn, index) => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all tabs and contents
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked button and corresponding content
+            btn.classList.add('active');
+            if (tabContents[index]) {
+                tabContents[index].classList.add('active');
+            }
+        });
+    });
+    
+    // Show first tab by default
+    if (tabBtns.length > 0 && tabContents.length > 0) {
+        // Remove any existing active classes first
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Then add active to first
+        tabBtns[0].classList.add('active');
+        tabContents[0].classList.add('active');
+    }
+}
+
+// Setup UC View tabs
+function setupUCViewTabs() {
+    const ucView = document.getElementById('ucView');
+    if (!ucView) {
+        console.warn('ucView element not found');
+        return;
+    }
+    
+    // Select only tab elements WITHIN this ucView
+    const tabBtns = ucView.querySelectorAll('.tabs .tab-btn');
+    const tabContents = ucView.querySelectorAll('.tab-content');
+    
+    console.log(`UC View tabs setup - found ${tabBtns.length} buttons and ${tabContents.length} content divs`);
+    
+    tabBtns.forEach((btn, index) => {
+        btn.addEventListener('click', () => {
+            // Remove active class from all tabs and contents
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Add active class to clicked button and corresponding content
+            btn.classList.add('active');
+            if (tabContents[index]) {
+                tabContents[index].classList.add('active');
+            }
+        });
+    });
+    
+    // Show first tab by default
+    if (tabBtns.length > 0 && tabContents.length > 0) {
+        // Remove any existing active classes first
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Then add active to first
+        tabBtns[0].classList.add('active');
+        tabContents[0].classList.add('active');
+    }
+}
+
+// Setup Excel View tabs
+function setupExcelViewTabs() {
+    const excelView = document.getElementById('excelView');
+    if (!excelView) {
+        console.warn('excelView element not found');
+        return;
+    }
+    
+    // Select only tab elements WITHIN this excelView
+    const tabBtns = excelView.querySelectorAll('.tabs .tab-btn');
+    const tabContents = excelView.querySelectorAll('.tab-content');
+    
+    console.log(`Excel View tabs setup - found ${tabBtns.length} buttons and ${tabContents.length} content divs`);
+    
+    tabBtns.forEach((btn, index) => {
+        btn.addEventListener('click', () => {
+            console.log(`Excel tab button clicked at index ${index}`);
+            // Remove active class from all tabs and contents
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+                content.style.display = 'none';
+            });
+            
+            // Add active class to clicked button and corresponding content
+            btn.classList.add('active');
+            if (tabContents[index]) {
+                tabContents[index].classList.add('active');
+                tabContents[index].style.display = 'block';
+                console.log(`Activated tab content at index ${index}`);
+            }
+        });
+    });
+    
+    // Show first tab by default
+    if (tabBtns.length > 0 && tabContents.length > 0) {
+        // Remove any existing active classes first
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(content => {
+            content.classList.remove('active');
+            content.style.display = 'none';
+        });
+        
+        // Then add active to first
+        tabBtns[0].classList.add('active');
+        tabContents[0].classList.add('active');
+        tabContents[0].style.display = 'block';
+        console.log('Excel View first tab activated by default');
+    }
+}
+
+function updateUCDocumentMeta(preview) {
+    const toDateText = (preview && preview.to_date) ? preview.to_date : 'DD/MM/YYYY';
+    const financialYearText = (preview && preview.financial_year) ? preview.financial_year : '2025-26';
+
+    document.querySelectorAll('.uc-to-date').forEach(el => {
+        el.textContent = toDateText;
+    });
+
+    document.querySelectorAll('.uc-financial-year').forEach(el => {
+        el.textContent = financialYearText;
+    });
 }
 
 // Populate UC table with extracted data
@@ -533,6 +793,9 @@ function populateUCData(ucData) {
             showAlert(`${recurringData.length} Recurring and ${nonRecurringData.length} Non-Recurring UC data entries populated`, 'success');
         }
         console.log('=== populateUCData completed successfully ===');
+        
+        // Update GFR 12-B values in frontend
+        updateGFR12BValues();
     } catch (error) {
         console.error('Error populating UC data:', error);
         console.error('Stack trace:', error.stack);
@@ -714,21 +977,50 @@ function populateTableData(tbody, dataList, tableType) {
 // Create table from data
 function createTable(tableId, data, columns) {
     const table = document.getElementById(tableId);
-    if (!table) return;
+    if (!table) {
+        console.warn(`Table with ID "${tableId}" not found`);
+        return;
+    }
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
-    if (!thead || !tbody) return;
+    if (!thead || !tbody) {
+        console.warn(`Table "${tableId}" missing thead or tbody`);
+        return;
+    }
+    
+    console.log(`Creating table: ${tableId}`);
+    console.log('  Received data length:', data ? data.length : 0);
+    console.log('  Requested columns:', columns);
     
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
     if (!data || data.length === 0) {
+        console.log(`No data for table ${tableId}`);
         tbody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 40px;">No data available</td></tr>';
         return;
     }
 
-    // Get columns
-    const cols = columns || Object.keys(data[0]);
+    console.log('  First data row:', data[0]);
+    console.log('  Available columns in data:', Object.keys(data[0]));
+    
+    // Get columns - first try requested columns, then fallback to actual data columns
+    let cols = columns;
+    
+    if (cols && cols.length > 0) {
+        // Verify that requested columns exist in the data
+        const firstRow = data[0];
+        const missingCols = cols.filter(col => !(col in firstRow));
+        
+        if (missingCols.length > 0) {
+            console.warn(`Requested columns not found in data for ${tableId}: ${missingCols}. Using auto-detected columns.`);
+            cols = Object.keys(firstRow);
+        }
+    } else {
+        cols = Object.keys(data[0]);
+    }
+    
+    console.log('  Using columns:', cols);
     
     // Create header
     const headerRow = document.createElement('tr');
@@ -744,6 +1036,7 @@ function createTable(tableId, data, columns) {
     thead.appendChild(headerRow);
 
     // Create rows
+    let rowCount = 0;
     data.forEach(row => {
         const tr = document.createElement('tr');
         cols.forEach(col => {
@@ -785,7 +1078,10 @@ function createTable(tableId, data, columns) {
         }
         
         tbody.appendChild(tr);
+        rowCount++;
     });
+    
+    console.log(`Table ${tableId} created successfully with ${rowCount} rows`);
 }
 
 // Display T-Hub Totals Table
@@ -1485,7 +1781,7 @@ function showFormatSelectionDialog(tableType = 'tg') {
     buttonContainer.style.gap = '10px';
     buttonContainer.style.flexDirection = 'column';
     
-    // For UC downloads only allow PDF and Word; otherwise allow all formats
+    // For UC downloads only allow Word; otherwise allow all formats
     let formats = [
         { name: 'Excel', icon: '📊', action: 'excel' },
         { name: 'PDF', icon: '📄', action: 'pdf' },
@@ -1493,7 +1789,6 @@ function showFormatSelectionDialog(tableType = 'tg') {
     ];
     if (tableType === 'uc-recurring' || tableType === 'uc-nonrecurring') {
         formats = [
-            { name: 'PDF', icon: '📄', action: 'pdf' },
             { name: 'Word', icon: '📃', action: 'word' }
         ];
     }
@@ -1514,7 +1809,7 @@ function showFormatSelectionDialog(tableType = 'tg') {
         `;
         btn.onmouseover = () => btn.style.background = '#004d99';
         btn.onmouseout = () => btn.style.background = '#0066cc';
-        btn.onclick = () => {
+        btn.onclick = async () => {
             if (tableType === 'thub') {
                 downloadTHubTablesInFormat(format.action);
             } else if (tableType === 'tg-recurring') {
@@ -1522,17 +1817,17 @@ function showFormatSelectionDialog(tableType = 'tg') {
             } else if (tableType === 'tg-nonrecurring') {
                 downloadTGNonRecurringInFormat(format.action);
             } else if (tableType === 'uc-recurring') {
-                // UC downloads: generate client-side PDF/Word
-                if (format.action === 'pdf' || format.action === 'word') {
-                    generateUCDocument('recurring', format.action);
+                // UC downloads: generate client-side Word only
+                if (format.action === 'word') {
+                    await generateUCDocument('recurring', format.action);
                 } else {
-                    showAlert('UC documents are available only in PDF or Word format', 'error');
+                    showAlert('UC documents are available only in Word format', 'error');
                 }
             } else if (tableType === 'uc-nonrecurring') {
-                if (format.action === 'pdf' || format.action === 'word') {
-                    generateUCDocument('nonrecurring', format.action);
+                if (format.action === 'word') {
+                    await generateUCDocument('nonrecurring', format.action);
                 } else {
-                    showAlert('UC documents are available only in PDF or Word format', 'error');
+                    showAlert('UC documents are available only in Word format', 'error');
                 }
             } else {
                 downloadTGTablesInFormat(format.action);
@@ -2013,24 +2308,24 @@ function downloadTGNonRecurringInFormat(format) {
 }
 
 // Download UC Recurring data in specified format
-function downloadUCRecurringInFormat(format) {
-    // Prefer client-side generation for PDF/Word to avoid backend dependency
-    if (format === 'pdf' || format === 'word') {
-        generateUCDocument('recurring', format);
+async function downloadUCRecurringInFormat(format) {
+    // Prefer client-side generation for Word to avoid backend dependency
+    if (format === 'word') {
+        await generateUCDocument('recurring', format);
         return;
     }
 
-    showAlert('UC documents are available only in PDF or Word from this interface', 'error');
+    showAlert('UC documents are available only in Word from this interface', 'error');
 }
 
 // Download UC Non-Recurring data in specified format
-function downloadUCNonRecurringInFormat(format) {
-    if (format === 'pdf' || format === 'word') {
-        generateUCDocument('nonrecurring', format);
+async function downloadUCNonRecurringInFormat(format) {
+    if (format === 'word') {
+        await generateUCDocument('nonrecurring', format);
         return;
     }
 
-    showAlert('UC documents are available only in PDF or Word from this interface', 'error');
+    showAlert('UC documents are available only in Word from this interface', 'error');
 }
 
 // Send UC data to backend endpoint which populates the .docx template and returns docx or pdf
@@ -2086,49 +2381,203 @@ async function downloadUCFromBackend(type = 'recurring', format = 'docx') {
 }
 
 // Generate UC document (client-side) for Recurring or Non-Recurring
-function generateUCDocument(type = 'recurring', format = 'pdf') {
+function resolveImageUrl(imageUrl) {
+    try {
+        return new URL(imageUrl, window.location.origin).href;
+    } catch (error) {
+        return imageUrl;
+    }
+}
+
+async function getImageDataUri(imageUrl) {
+    try {
+        const resolvedUrl = resolveImageUrl(imageUrl);
+        const response = await fetch(resolvedUrl, { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error('Image not found');
+        }
+        const blob = await response.blob();
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = () => reject(new Error('Failed to read image'));
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.warn('UC header image load failed, using path instead:', error);
+        return resolveImageUrl(imageUrl);
+    }
+}
+
+async function generateUCDocument(type = 'recurring', format = 'pdf') {
     try {
         const toDate = toDateValue.textContent || 'dd-mm-yyyy';
         const schemeName = 'National Quantum Mission (4262)';
-        const grantTypeText = (type === 'recurring') ? 'Recurring' : 'Non-recurring';
-        const componentLabel = (type === 'recurring') ? 
-            'Grant-in-aid– Total General' : 'Grant-in-aid–creation of capital assets';
-
-        // Select the main UC table and component table based on type
+        const grantTypeText = (type === 'recurring') ? 'Recurring' : 'Non-Recurring';
+        const financialYearText = (financialYearValue && financialYearValue.textContent)
+            ? financialYearValue.textContent
+            : '2025-26';
+        const formId = '12A';
+        const gfrTitle = 'GFR 12 - A';
+        const gfrTitleB = 'GFR 12 - B';
+        const formIdB = '12B';
+        const headerImagePath = '/static/img/image1.png';
+        const headerSrc = await getImageDataUri(headerImagePath);
+        const headerImage2Path = '/static/img/image2.png';
+        const headerSrc2 = await getImageDataUri(headerImage2Path);
+        const componentLabel = (type === 'recurring')
+            ? 'Grant-in-aid - Total General'
+            : 'Grant-in-aid - Creation of capital assets';
+        const isNonRecurring = type === 'nonrecurring';
+        
+        // Get window data as backup (in case table extraction fails)
+        const thubTgsData = isNonRecurring ? window.thubTgsComparisonDataNonRecurring : window.thubTgsComparisonData;
+        const totalFundsReleased = thubTgsData?.totalFundsReleased || 0;
+        const totalExpenditure = thubTgsData?.totalExpenditure || 0;
+        
+        // Select the UC Exp Recurring table specifically
         let ucTable = null;
         let componentTable = null;
         if (type === 'recurring') {
-            ucTable = document.querySelector('table.uc-template-table:not(#ucNonRecurringTable)');
+            // Find the UC Exp Recurring table by looking for the table in the UC recurring tab/section
+            // Search for table with id containing "ucRecurring" or look for the visible UC table
+            ucTable = document.getElementById('ucRecurringTable') || 
+                      document.querySelector('#ucRecurringTab table.uc-template-table') ||
+                      document.querySelector('div#ucRecurring table.uc-template-table:first-of-type') ||
+                      document.querySelector('table.uc-template-table:not(#ucNonRecurringTable):not(.se-template-table)');
             componentTable = document.getElementById('ucComponentTable');
         } else {
             ucTable = document.getElementById('ucNonRecurringTable');
             componentTable = document.getElementById('ucComponentNonRecurringTable');
         }
 
+        // Extract actual expenditure and closing balance from the UC table footer row
+        let expenditureFromTable = 0;
+        let closingBalanceFromTable = 0;
+        
+        if (ucTable) {
+            const tableId = ucTable.id || 'no-id';
+            const tableClass = ucTable.className;
+            console.log(`✓ UC Table selected: ID="${tableId}", Class="${tableClass}"`);
+            
+            // Get the data rows from tbody
+            const tbody = ucTable.querySelector('tbody');
+            if (tbody) {
+                const rows = tbody.querySelectorAll('tr');
+                console.log(`UC Table: Found ${rows.length} rows`);
+                if (rows.length > 0) {
+                    // Get the FIRST row (rows[0]) which has the actual data with expenditure and closing balance
+                    const dataRow = rows[0];
+                    const cells = dataRow.querySelectorAll('td');
+                    console.log(`UC Table: First row has ${cells.length} cells`);
+                    
+                    // Log all cell values to identify correct columns
+                    cells.forEach((cell, index) => {
+                        console.log(`UC Table Cell ${index}: ${cell.textContent.trim()}`);
+                    });
+                    
+                    // Column indices: 7=Expenditure incurred, 8=Closing Balances (5-6)
+                    if (cells[7]) { // Expenditure incurred column
+                        const expText = cells[7].textContent.trim().replace(/,/g, '');
+                        expenditureFromTable = parseFloat(expText) || 0;
+                        console.log(`✓ Expenditure from UC table cell 7: ${expenditureFromTable}`);
+                    }
+                    if (cells[8]) { // Closing Balances column
+                        const balText = cells[8].textContent.trim().replace(/,/g, '');
+                        closingBalanceFromTable = parseFloat(balText) || 0;
+                        console.log(`✓ Closing Balance from UC table cell 8: ${closingBalanceFromTable}`);
+                    }
+                }
+            }
+        } else {
+            console.log('⚠ UC Table not found!');
+        }
+
+        // Use extracted table values; fall back to window data if not found
+        const finalExpenditure = expenditureFromTable > 0 ? expenditureFromTable : (parseFloat(totalExpenditure) || 0);
+        const finalClosingBalance = closingBalanceFromTable > 0 ? closingBalanceFromTable : Math.abs((parseFloat(totalFundsReleased) || 0) - (parseFloat(totalExpenditure) || 0));
+        
+        // For UC document, utilized amount is the full expenditure (not half), closing balance is as shown in table
+        const expenditureHalf = finalExpenditure;
+        const closingBalance = finalClosingBalance;
+        
+        console.log('=== UC DOCUMENT DEBUG ===');
+        console.log(`Window Data Type: ${type === 'recurring' ? 'RECURRING' : 'NON-RECURRING'}`);
+        console.log(`Expenditure from Table: ${expenditureFromTable}`);
+        console.log(`Closing Balance from Table: ${closingBalanceFromTable}`);
+        console.log(`Final Expenditure (Utilized): ${expenditureHalf}`);
+        console.log(`Final Closing Balance: ${closingBalance}`);
+        console.log(`Formatted Expenditure: ${formatCurrency(expenditureHalf)}`);
+        console.log(`Formatted Closing Balance: ${formatCurrency(closingBalance)}`);
+        console.log('========================');
+        
+        const tableFontPt = '7pt'; // Smaller font to fit all columns within page width
+        const tablePaddingPt = '0.5%'; // Balanced padding to avoid overflow
+        const bodyPaddingMm = '5mm'; // Add body padding for better spacing
+        const pagePaddingMm = '5mm'; // Add page padding for margins
+        const pageMarginMm = '5mm'; // Add proper page margins
+        const headerHeightPx = isNonRecurring ? '100px' : '100px';
+        const tableFontPx = '7px'; // Smaller font size to fit A4 properly
+        const tableMarginMm = '1mm'; // Smaller table margin to keep full width inside page
+        const tableLayoutMode = 'fixed'; // Use fixed layout to keep columns within page width
+
         // Clone and clean the tables to embed properly
         let ucTableHTML = '';
         if (ucTable) {
             const clonedTable = ucTable.cloneNode(true);
+            const existingColgroup = clonedTable.querySelector('colgroup');
+            if (existingColgroup) {
+                existingColgroup.remove();
+            }
+            const ucColgroup = document.createElement('colgroup');
+            const ucColWidths = [
+                '11.11%',
+                '11.11%',
+                '11.11%',
+                '11.11%',
+                '11.11%',
+                '11.11%',
+                '11.11%',
+                '11.11%',
+                '11.11%'
+            ];
+            ucColWidths.forEach(width => {
+                const col = document.createElement('col');
+                col.style.width = width;
+                ucColgroup.appendChild(col);
+            });
+            clonedTable.insertBefore(ucColgroup, clonedTable.firstChild);
+
             // Add styling to the cloned table
             clonedTable.style.borderCollapse = 'collapse';
             clonedTable.style.width = '100%';
             clonedTable.style.tableLayout = 'fixed';
             clonedTable.style.marginTop = '6pt';
             clonedTable.style.marginBottom = '6pt';
+            clonedTable.style.marginLeft = '0';
+            clonedTable.style.marginRight = '0';
             clonedTable.style.border = '1pt solid #000000';
-            clonedTable.style.fontSize = '11pt';
+            clonedTable.style.fontSize = tableFontPt;
+            clonedTable.style.maxWidth = '100%';
+            clonedTable.style.fontFamily = "'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif";
             
             // Style all cells
             clonedTable.querySelectorAll('th, td').forEach(cell => {
                 cell.style.border = '1pt solid #000000';
-                cell.style.padding = '4pt';
-                cell.style.textAlign = 'left';
+                cell.style.padding = tablePaddingPt;
+                cell.style.textAlign = 'center';
                 cell.style.verticalAlign = 'top';
-                cell.style.fontFamily = 'Times New Roman, Times, serif';
-                cell.style.fontSize = '11pt';
+                cell.style.fontFamily = "'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif";
+                cell.style.fontSize = tableFontPt;
                 cell.style.wordBreak = 'break-word';
-                cell.style.overflowWrap = 'break-word';
+                cell.style.overflowWrap = 'anywhere';
                 cell.style.whiteSpace = 'normal';
+                if (cell.tagName === 'TH') {
+                    cell.style.backgroundColor = '#f3f3f3';
+                    cell.style.fontWeight = 'bold';
+                    cell.style.lineHeight = '1.1';
+                    cell.style.verticalAlign = 'middle';
+                }
             });
             
             ucTableHTML = clonedTable.outerHTML;
@@ -2139,26 +2588,47 @@ function generateUCDocument(type = 'recurring', format = 'pdf') {
         let componentTableHTML = '';
         if (componentTable) {
             const clonedComponentTable = componentTable.cloneNode(true);
+            const existingComponentColgroup = clonedComponentTable.querySelector('colgroup');
+            if (existingComponentColgroup) {
+                existingComponentColgroup.remove();
+            }
+            const componentColgroup = document.createElement('colgroup');
+            const componentColWidths = ['34%', '33%', '33%'];
+            componentColWidths.forEach(width => {
+                const col = document.createElement('col');
+                col.style.width = width;
+                componentColgroup.appendChild(col);
+            });
+            clonedComponentTable.insertBefore(componentColgroup, clonedComponentTable.firstChild);
+
             // Add styling to the cloned table
             clonedComponentTable.style.borderCollapse = 'collapse';
             clonedComponentTable.style.width = '100%';
             clonedComponentTable.style.tableLayout = 'fixed';
             clonedComponentTable.style.marginTop = '6pt';
             clonedComponentTable.style.marginBottom = '6pt';
+            clonedComponentTable.style.marginLeft = '0';
+            clonedComponentTable.style.marginRight = '0';
             clonedComponentTable.style.border = '1pt solid #000000';
-            clonedComponentTable.style.fontSize = '11pt';
+            clonedComponentTable.style.fontSize = tableFontPt;
+            clonedComponentTable.style.maxWidth = '100%';
+            clonedComponentTable.style.fontFamily = "'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif";
             
             // Style all cells
             clonedComponentTable.querySelectorAll('th, td').forEach(cell => {
                 cell.style.border = '1pt solid #000000';
-                cell.style.padding = '4pt';
-                cell.style.textAlign = 'left';
+                cell.style.padding = tablePaddingPt;
+                cell.style.textAlign = 'justify';
                 cell.style.verticalAlign = 'top';
-                cell.style.fontFamily = 'Times New Roman, Times, serif';
-                cell.style.fontSize = '11pt';
+                cell.style.fontFamily = "'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif";
+                cell.style.fontSize = tableFontPt;
                 cell.style.wordBreak = 'break-word';
-                cell.style.overflowWrap = 'break-word';
+                cell.style.overflowWrap = 'anywhere';
                 cell.style.whiteSpace = 'normal';
+                if (cell.tagName === 'TH') {
+                    cell.style.backgroundColor = '#f3f3f3';
+                    cell.style.fontWeight = 'bold';
+                }
             });
             
             componentTableHTML = clonedComponentTable.outerHTML;
@@ -2167,159 +2637,403 @@ function generateUCDocument(type = 'recurring', format = 'pdf') {
         }
 
         // Build professional document HTML matching the GFR templates (header, ribbon, emblem, footer)
+        const pageOne = `
+<div class="page-container">
+    <div style="text-align: center; margin-bottom: 6px; overflow: hidden;">
+        <img src="${headerSrc}" style="max-width: 74%; display: block; margin: 0 auto; height: 37%;" alt="Header"/>
+    </div>
+    <h1 class="uc-main-title">${gfrTitle}</h1>
+    <h2 class="uc-sub-title">[See Rule 238 (1)]</h2>
+    <div class="uc-title-block">
+        <h1 class="uc-form-title">FORM OF UTILIZATION CERTIFICATE</h1>
+    </div>
+    <div class="uc-title-block">
+        <p class="uc-year-line">
+            UTILIZATION CERTIFICATE FOR THE YEAR <u>${financialYearText} (till ${toDate})</u> in respect of ${grantTypeText}<br/>
+            GRANTS-IN-AID/SALARIES/CREATION OF CAPITAL ASSETS
+        </p>
+    </div>
+
+    <ol class="uc-list">
+        <li><strong>Name of the Scheme:</strong> ${schemeName}</li>
+        <li><strong>Whether recurring or non-recurring grants:</strong> ${grantTypeText}</li>
+        <li><strong>Grants position at the beginning of the Financial year</strong>
+            <ul>
+                <li>(i) Cash in Hand/Bank: Rs. ______________________</li>
+                <li>(ii) Unadjusted advances: Rs. ______________________</li>
+                <li>(iii) Total: Rs. ______________________</li>
+            </ul>
+        </li>
+    </ol>
+
+    <div class="uc-section-title">Details of grants received, expenditure incurred and closing balances: (Actuals)</div>
+    ${ucTableHTML}
+
+    <div class="uc-section-title">Component wise utilization of grants:</div>
+    ${componentTableHTML}
+
+    <div class="uc-end-section" style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">Details of grants position at the end of the year<br/>(i) Cash in Hand/Bank: Rs.<br/>(ii) Unadjusted Advances: Rs.<br/>(iii) Total: Rs.</div>
+</div>
+`;
+
+        const pageTwo = `
+<div class="page-container">
+    <div style="text-align: center; margin-bottom: 4px; max-width: 100%; overflow: hidden;">
+        <img src="${headerSrc2}" style="width: 100%; max-width: 100%; height: auto; display: block; margin: 0 auto; max-height: 80px;" alt="Header"/>
+    </div>
+    <p class="uc-paragraph" style="text-align: justify; margin: 2px 0; line-height: 1.25; font-size: 9pt; margin-top: 30px">Certified that I have satisfied myself that the conditions on which grants were sanctioned have been duly fulfilled / are being fulfilled and that I have exercised following checks to see that the money has been actually utilized for the purpose for which it was sanctioned:</p>
+
+    <ol class="uc-list" style="margin-top: 2px; margin-bottom: 2px;">
+        <li>The main accounts and other subsidiary accounts and registers (including assets registers) are maintained as prescribed in the relevant Act/Rules/Standing instructions and have been duly audited by designated auditors. The figures depicted above tally with the audited figures mentioned in financial statements/accounts.</li>
+        <li>There exist internal controls for safeguarding public funds/assets, watching outcomes and achievements of physical targets against the financial inputs, ensuring quality in asset creation etc. and the periodic evaluation of internal controls is exercised to ensure their effectiveness.</li>
+        <li>To the best of our knowledge and belief, no transactions have been entered that are in violation of relevant Act/Rules/standing instructions and scheme guidelines.</li>
+        <li>The responsibilities among the key functionaries for execution of the scheme have been assigned in clear terms and are not general in nature.</li>
+        <li>The benefits were extended to the intended beneficiaries and only such areas/districts were covered where the scheme was intended to operate.</li>
+        <li>The expenditure on various components of the scheme was in the proportions authorized as per the scheme guidelines and terms and conditions of the grants-in-aid.</li>
+        <li>It has been ensured that the physical and financial performance under the scheme has been achieved according to the requirements, as prescribed in the guidelines issued by the Government of India and the performance/targets achieved till the end of the year to which the utilization of the fund related is compared with Annexure - I duly enclosed.</li>
+        <li>The utilization of the fund resulted in outcomes in the Annexure - I duly enclosed (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</li>
+        <li>Details of various schemes executed by the agency through grants-in-aid received from the same Ministry/Department or from other Ministries is enclosed at Annexure - II (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</li>
+    </ol>
+
+    <table class="uc-sign-table" style="margin-top: 4px;">
+        <tr>
+            <td class="uc-sign-date" style="padding-bottom: 0px;">
+                <div style="font-size: 9pt; line-height: 1.1;">Date: _______________________</div>
+                <div style="font-size: 9pt; line-height: 1.1;">Place: _______________________</div>
+            </td>
+            <td class="uc-sign-date"></td>
+        </tr>
+        <tr>
+            <td class="uc-sign-cell" style="padding-top: 2px;">
+                <div class="uc-sign-line"></div>
+                <div style="font-size: 9pt; line-height: 1.1;">Signature</div>
+                <div style="font-size: 9pt; line-height: 1.1;">Name..................................</div>
+                <div style="font-size: 9pt; line-height: 1.1;">Chief Finance Officer</div>
+                <div style="font-size: 9pt; line-height: 1.1;">(Head of the Finance)</div>
+            </td>
+            <td class="uc-sign-cell" style="padding-top: 2px;">
+                <div class="uc-sign-line"></div>
+                <div style="font-size: 9pt; line-height: 1.1;">Signature</div>
+                <div style="font-size: 9pt; line-height: 1.1;">Name..................................</div>
+                <div style="font-size: 9pt; line-height: 1.1;">Head of the Organisation</div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="uc-footnote" style="margin-top: 2px; font-size: 9pt; line-height: 1.1;">(Strike out inapplicable terms)</div>
+</div>
+`;
+
+        const pageThree = `
+<div class="page-container">
+    <div style="text-align: center; margin-bottom: 6px; max-width: 100%; overflow: hidden;">
+        <img src="${headerSrc}" style="width: 100%; max-width: 100%; height: auto; display: block; margin: 0 auto; max-height: 80px;" alt="Header"/>
+    </div>
+    <h1 class="uc-main-title">${gfrTitleB}</h1>
+    <h2 class="uc-sub-title">[See Rule 256 (2)]</h2>
+    <div class="uc-title-block">
+        <h1 class="uc-form-title">FORM OF UTILIZATION CERTIFICATE</h1>
+    </div>
+
+    <div class="uc-paragraph">
+        (1) Certified that out of the Grant-in-aid of Rs. ____________________ sanctioned under ____________________ dated __________ in favour of ____________________ during the year __________ an amount of Rs. ${formatCurrency(expenditureHalf)} has been utilized for the purpose for which it was sanctioned, and that the balance of Rs. ${formatCurrency(closingBalance)} remaining unutilized at the end of the year __________ has been surrendered to the Government [vide No. __________ dated __________] / will be adjusted towards the Grant-in-aid payable during the next financial year.
+    </div>
+
+    <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
+        (2) Certified that I have satisfied myself that the conditions on which the loan was sanctioned have been duly fulfilled / are being fulfilled and that I have exercised the following checks to see that the money was actually spent for the purpose for which the loan was made.
+    </div>
+
+    <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">Kind of checks exercised</div>
+    <ol class="uc-list">
+        <li>______________________________________________</li>
+        <li>______________________________________________</li>
+        <li>______________________________________________</li>
+    </ol>
+
+    <div class="uc-signatures" style="margin-top: 18pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
+        <div class="uc-sign-left"></div>
+        <div class="uc-sign-right">
+            <div class="uc-sign-block">
+                <div class="uc-sign-line"></div>
+                <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Signature...............................</div>
+                <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Designation..................................</div>
+                <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Date..................................</div>
+            </div>
+        </div>
+    </div>
+</div>
+`;
+
         const docContent = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8"/>
     <title>Utilization Certificate - ${grantTypeText}</title>
     <style>
-        @page { size: A4; margin: 1cm 1.2cm; }
-        html, body { height:100%; }
-        body { font-family: 'Times New Roman', Times, serif; font-size: 12pt; margin: 0; padding: 0.9in 0.85in; color: #000; }
-        .page { width: 100%; position: relative; box-sizing: border-box; }
-
-        /* Header layout similar to provided templates */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10pt;
+        @page { size: A4 portrait; margin: ${pageMarginMm}; }
+        @font-face {
+            font-family: 'FuturaBT-Book';
+            src: local('FuturaBT-Book'), local('Futura BT Book'), local('Futura');
         }
-        .ribbon-left {
-            width: 120px;
-            height: 40px;
-            background: #9fe06a; /* light green */
-            color: #fff;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-weight:700;
-            font-size:12px;
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
+            font-size: 10pt;
+
         }
-        .header-center { flex: 1; padding-left: 12px; }
-        .gfr-box {
-            background: #cff9a6; /* pale green */
-            padding: 6px 12px;
-            display:flex;
-            align-items:center;
-            gap:12px;
-            border-radius:2px;
+        html, body { 
+            width: 100%; 
+            height: 100%; 
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
+            background-color: #ffffff;
+            font-size: 10pt;
         }
-        .gfr-text { font-weight:700; font-size:11px; text-align:left; }
-        .emblem { width:56px; height:56px; background: #fff; display:inline-block; }
-
-        .form-title-area { text-align:center; margin-top:6pt; margin-bottom:6pt; }
-        .form-gfr { font-weight:700; font-size:14pt; }
-        .form-sub { font-size:10pt; margin-top:3pt; }
-        .uc-header { font-weight:700; font-size:12pt; margin-top:8pt; text-align:center; }
-
-        /* Main text and lists */
-        .content ol, .content ul { margin-left: 0.8in; margin-bottom:6pt; }
-        .content p { margin-bottom:6pt; text-align: justify; }
-
-        /* Tables similar to template */
-        table { width:100%; border-collapse: collapse; font-size:11pt; margin-top:6pt; table-layout: fixed; }
-        th, td { border:1pt solid #000; padding:4pt; vertical-align:top; word-break: break-word; overflow-wrap: break-word; word-wrap: break-word; }
-        th { background:#fff; font-weight:700; }
-
-        /* Component box style */
-        .component-box { width: 60%; margin-top: 8pt; border:1pt solid #000; }
-        .component-box td { padding:6pt; }
-
-        /* Signature area */
-        .sig-section { margin-top:28pt; padding-top:6pt; }
-        .signature-block { display:flex; justify-content:space-between; gap:10px; }
-        .signature-item { width:48%; text-align:center; }
-        .signature-line { border-top:1pt solid #000; width: 180px; margin: 0 auto 6pt; height:12pt; }
-
-        /* Footer - page number */
-        .page-footer { position: fixed; bottom: 12pt; left: 0; right: 0; text-align:center; font-size:10pt; }
-        .page-footer:after { content: "Page " counter(page); }
-
-        /* Ensure printed pages break correctly */
-        .page { page-break-after: always; padding-bottom: 40pt; }
+        body { 
+            margin: 0; 
+            padding: ${bodyPaddingMm};
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
+            font-size: 10pt;
+        }
+        .page-container {
+            width: 100%;
+            max-width: 100%;
+            background-color: #ffffff;
+            padding: ${pagePaddingMm};
+            margin: 0;
+            box-shadow: none;
+            page-break-after: always;
+            page-break-inside: auto;
+            overflow: visible;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        .page-break { page-break-after: always; }
+        h1, h2, h3, h4 { 
+            margin: 6px 0; 
+            text-align: center;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 12pt;
+            font-weight: bold;
+        }
+        p { 
+            margin: 4px 0; 
+            line-height: 1.4;
+            text-align: justify;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        table { 
+            width: 100%; 
+            max-width: 100%; 
+            border-collapse: collapse; 
+            border-spacing: 0; 
+            margin: ${tableMarginMm} 0; 
+            font-size: ${tableFontPt}; 
+            table-layout: fixed; 
+            page-break-inside: auto;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            margin-left: 0;
+            margin-right: 0;
+        }
+        tr { 
+            page-break-inside: avoid; 
+            page-break-after: auto;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        table th, table td { 
+            border: 1px solid #000; 
+            padding: ${tablePaddingPt}; 
+            text-align: center; 
+            word-break: break-word; 
+            overflow-wrap: anywhere; 
+            line-height: 1.1;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: ${tableFontPt};
+            vertical-align: middle;
+        }
+        table th { 
+            background-color: #f0f0f0; 
+            font-weight: bold;
+            font-size: ${tableFontPt};
+        }
+        .uc-title-block { 
+            text-align: center; 
+            margin-bottom: 12px;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        .uc-form-title { 
+            font-size: 12pt; 
+            font-weight: bold; 
+            margin: 0;
+            text-align: center;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        .uc-year-line { 
+            font-size: 10pt; 
+            margin: 2px 0; 
+            text-align: center;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        .uc-section-title { 
+            font-weight: bold; 
+            margin: 6px 0 4px 0; 
+            font-size: 12pt;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        .uc-end-section { 
+            margin-top: 6px; 
+            font-size: 10pt;
+            text-align: left;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        .uc-paragraph { 
+            text-align: justify; 
+            font-size: 10pt;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            margin: 2px 0;
+            line-height: 1.3;
+        }
+        .uc-list { 
+            margin-left: 18px; 
+            margin-top: 1px; 
+            margin-bottom: 1px;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        .uc-list li { 
+            margin: 1px 0; 
+            font-size: 10pt;
+            text-align: justify;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            line-height: 1.3;
+        }
+        .uc-list ul { 
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        .uc-list ul li { 
+            text-align: justify;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        .uc-sign-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 8px;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        .uc-sign-table td { 
+            border: none; 
+            padding: 0; 
+            vertical-align: top;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+            text-align: justify;
+            line-height: 1.2;
+        }
+        .uc-sign-date { 
+            width: 50%; 
+            font-size: 9pt; 
+            padding-bottom: 0px;
+            line-height: 1.1;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            text-align: justify;
+        }
+        .uc-sign-cell { 
+            width: 50%; 
+            text-align: center; 
+            font-size: 9pt; 
+            padding-top: 0px;
+            line-height: 1.1;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        .uc-sign-line { 
+            border-top: 1px solid #000; 
+            width: 170px; 
+            margin: 0 auto 1px auto; 
+            height: 4px; 
+        }
+        .uc-footnote { 
+            margin-top: 2px; 
+            font-size: 10pt; 
+            text-align: justify;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        .uc-main-title { 
+            margin: 0 0 2px 0; 
+            font-size: 12pt; 
+            font-weight: bold;
+            text-align: center;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        .uc-sub-title { 
+            margin: 0 0 4px 0; 
+            font-size: 10pt; 
+            font-weight: normal;
+            text-align: center;
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        .uc-signatures {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        .uc-sign-left {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        .uc-sign-right {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        .uc-sign-block {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+            text-align: right;
+        }
+        ol, ul {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        li {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+            text-align: justify;
+        }
+        strong, b {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        u {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        div {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+            text-align: justify;
+        }
+        span {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        br {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+        }
+        i, em {
+            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+            font-size: 10pt;
+        }
+        @media print {
+            html, body { width: 210mm; height: 297mm; margin: 0; padding: 0; background-color: #ffffff; }
+            .page-container { width: 100%; margin: 0; box-shadow: none; page-break-after: always; page-break-inside: auto; overflow: visible; }
+        }
     </style>
 </head>
 <body>
-<div class="page">
-    <div class="header">
-        <div class="ribbon-left">FORM GFR 12A</div>
-        <div class="header-center">
-            <div class="gfr-box">
-                <div style="text-align:left;">
-                    <div class="gfr-text">GENERAL FINANCIAL RULES 2017</div>
-                    <div style="font-size:10px;">Ministry of Finance<br/>Department of Expenditure</div>
-                </div>
-            </div>
-        </div>
-        <div style="text-align:right;">
-            <div class="gfr-box">
-                <div style="text-align:right; font-size:10px;">FORM GFR 12A</div>
-                <div class="emblem" aria-hidden="true"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="form-title-area">
-        <div class="form-gfr">GFR 12 - A</div>
-        <div class="form-sub">(See Rule 238 (1))</div>
-        <div style="margin-top:6pt; font-weight:700;">FORM OF UTILIZATION CERTIFICATE</div>
-        <div style="font-size:11pt; margin-top:6pt;">UTILIZATION CERTIFICATE FOR THE YEAR 2025-26 (till ${toDate}) in respect of ${grantTypeText}</div>
-    </div>
-
-    <div class="content">
-        <ol>
-            <li><strong>Name of the Scheme:</strong> ${schemeName}</li>
-            <li><strong>Whether recurring or non-recurring grants:</strong> ${grantTypeText}</li>
-            <li><strong>Grants position at the beginning of the Financial year</strong>
-                <ul>
-                    <li>(i) Cash in Hand/Bank: Rs. ______________________</li>
-                    <li>(ii) Unadjusted advances: Rs. ______________________</li>
-                    <li>(iii) Total: Rs. ______________________</li>
-                </ul>
-            </li>
-        </ol>
-
-        <div class="section-title" style="font-weight:700; margin-top:6pt;">Details of grants received, expenditure incurred and closing balances: (Actuals)</div>
-        ${ucTableHTML}
-
-        <div class="section-title" style="font-weight:700; margin-top:8pt;">Component wise utilization of grants:</div>
-        ${componentTableHTML}
-
-        <div style="margin-top:8pt;">Details of grants position at the end of the year<br/>(i) Cash in Hand/Bank: Rs.<br/>(ii) Unadjusted Advances: Rs.<br/>(iii) Total: Rs.</div>
-
-        <div class="section-title" style="font-weight:700; margin-top:12pt;">CERTIFICATION</div>
-        <p>Certified that I have satisfied myself that the conditions on which grants were sanctioned have been duly fulfilled / are being fulfilled and that I have exercised following checks to see that the money has been actually utilized for the purpose for which it was sanctioned:</p>
-
-        <ol>
-            <li>The main accounts and other subsidiary accounts and registers (including assets registers) are maintained as prescribed in the relevant Act/Rules/Standing instructions and have been duly audited by designated auditors. The figures depicted above tally with the audited figures mentioned in financial statements/accounts.</li>
-            <li>There exist internal controls for safeguarding public funds/assets, watching outcomes and achievements of physical targets against the financial inputs, ensuring quality in asset creation etc. & the periodic evaluation of internal controls is exercised to ensure their effectiveness.</li>
-            <li>To the best of our knowledge and belief, no transactions have been entered that are in violation of relevant Act/Rules/standing instructions and scheme guidelines.</li>
-        </ol>
-
-        <div class="sig-section">
-            <div style="margin-top:12pt;">Date: _______________________</div>
-            <div style="margin-top:6pt;">Place: _______________________</div>
-
-            <div class="signature-block">
-                <div class="signature-item">
-                    <div class="signature-line"></div>
-                    <div style="margin-top:4pt;">Name..................................</div>
-                    <div>Chief Finance Officer</div>
-                </div>
-                <div class="signature-item">
-                    <div class="signature-line"></div>
-                    <div style="margin-top:4pt;">Name..................................</div>
-                    <div>Head of the Organisation</div>
-                </div>
-            </div>
-        </div>
-
-        <div style="margin-top:10pt; font-size:10pt;">(Strike out inapplicable terms)</div>
-    </div>
-
-    <div class="page-footer"></div>
-</div>
+${pageOne}<div class="page-break"></div>${pageTwo}<div class="page-break"></div>${pageThree}
 </body>
 </html>`;
 
@@ -2328,9 +3042,29 @@ function generateUCDocument(type = 'recurring', format = 'pdf') {
             newWindow.document.open();
             newWindow.document.write(docContent);
             newWindow.document.close();
-            setTimeout(() => {
-                newWindow.print();
-            }, 500);
+            const waitForImages = () => {
+                const images = Array.from(newWindow.document.images || []);
+                if (images.length === 0) {
+                    newWindow.print();
+                    return;
+                }
+                let loaded = 0;
+                const onDone = () => {
+                    loaded += 1;
+                    if (loaded >= images.length) {
+                        newWindow.print();
+                    }
+                };
+                images.forEach(img => {
+                    if (img.complete) {
+                        onDone();
+                    } else {
+                        img.onload = onDone;
+                        img.onerror = onDone;
+                    }
+                });
+            };
+            setTimeout(waitForImages, 150);
             showAlert(`UC ${grantTypeText} prepared for printing. Use print dialog to save as PDF.`, 'success');
             return;
         }
@@ -2339,57 +3073,249 @@ function generateUCDocument(type = 'recurring', format = 'pdf') {
             // Create .doc (HTML) file for MS Word with comprehensive styling
             const wordStyles = `
                 <style>
-                    * { margin: 0; padding: 0; }
+                    @page { size: A4 portrait; margin: ${pageMarginMm}; }
+                    @font-face {
+                        font-family: 'FuturaBT-Book';
+                        src: local('FuturaBT-Book'), local('Futura BT Book'), local('Futura');
+                    }
+                    * { 
+                        margin: 0; 
+                        padding: 0; 
+                        box-sizing: border-box; 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
+                        font-size: 10pt;
+                        text-align: justify;
+                    }
                     body { 
-                        font-family: 'Times New Roman', Times, serif; 
-                        margin: 0.75in; 
-                        font-size: 12pt; 
-                        line-height: 1.15;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
+                        background-color: #ffffff; 
+                        margin: 0; 
+                        padding: ${bodyPaddingMm}; 
+                        font-size: 10pt;
                     }
-                    table { 
-                        border-collapse: collapse; 
-                        width: 100%; 
-                        margin: 6pt 0; 
-                        border: 1pt solid #000;
-                        table-layout: fixed;
+                    .page-container {
+                        width: 100%;
+                        max-width: 100%;
+                        background-color: #ffffff;
+                        padding: ${pagePaddingMm};
+                        margin: 0;
+                        page-break-after: always;
+                        page-break-inside: auto;
+                        overflow: visible;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
                     }
-                    th, td { 
-                        border: 1pt solid #000; 
-                        padding: 4pt; 
-                        font-size: 11pt;
-                        font-family: 'Times New Roman', Times, serif;
-                        word-break: break-word;
-                        overflow-wrap: break-word;
-                        word-wrap: break-word;
-                        white-space: normal;
-                    }
-                    th { 
-                        font-weight: bold; 
-                        background-color: #fff;
-                    }
-                    h1, h2, h3 { 
-                        font-family: 'Times New Roman', Times, serif;
-                    }
-                    .page { width: 100%; }
-                    .section-title { 
-                        font-size: 12pt; 
-                        font-weight: bold; 
-                        margin-top: 12pt; 
-                        margin-bottom: 6pt;
+                    .page-break { page-break-after: always; }
+                    h1, h2, h3, h4 { 
+                        margin: 10px 0; 
+                        text-align: center; 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 12pt;
+                        font-weight: bold;
                     }
                     p { 
+                        margin: 8px 0; 
+                        line-height: 1.5; 
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    table { 
+                        width: 100%; 
+                        max-width: 100%; 
+                        border-collapse: collapse; 
+                        border-spacing: 0; 
+                        margin: ${tableMarginMm} 0; 
+                        font-size: ${tableFontPt}; 
+                        table-layout: fixed; 
+                        page-break-inside: auto;
+                        mso-table-lspace: 0pt;
+                        mso-table-rspace: 0pt;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        margin-left: 0;
+                        margin-right: 0;
+                    }
+                    tr { 
+                        page-break-inside: avoid; 
+                        page-break-after: auto;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    table th, table td { 
+                        border: 1px solid #000; 
+                        padding: ${tablePaddingPt}; 
+                        text-align: center; 
+                        word-break: break-word; 
+                        overflow-wrap: anywhere; 
+                        line-height: 1.1;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: ${tableFontPt};
+                        vertical-align: middle;
+                    }
+                    table th { 
+                        background-color: #f0f0f0; 
+                        font-weight: bold;
+                        font-size: ${tableFontPt};
+                    }
+                    .uc-title-block { 
+                        text-align: center; 
+                        margin-bottom: 30px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-form-title { 
                         font-size: 12pt; 
-                        margin-bottom: 6pt;
-                        line-height: 1.15;
+                        font-weight: bold; 
+                        margin: 0;
+                        text-align: center;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                     }
-                    ol, ul { 
-                        margin-bottom: 6pt; 
-                        margin-left: 0.25in; 
-                        padding-left: 0.25in;
+                    .uc-year-line { 
+                        font-size: 10pt; 
+                        margin: 0; 
+                        text-align: center;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                     }
-                    li { 
-                        margin-bottom: 3pt; 
-                        line-height: 1.15;
+                    .uc-section-title { 
+                        font-weight: bold; 
+                        margin: 10px 0;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 12pt;
+                        
+                    }
+                    .uc-end-section { 
+                        margin-top: 10px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: left;
+                    }
+                    .uc-paragraph { 
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-list { 
+                        margin-left: 18px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-list li { 
+                        margin: 6px 0;
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-list ul { 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-list ul li { 
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-sign-table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        margin-top: 24px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-sign-table td { 
+                        border: none; 
+                        padding: 0; 
+                        vertical-align: top;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: justify;
+                    }
+                    .uc-sign-date { 
+                        width: 50%; 
+                        font-size: 10pt; 
+                        padding-bottom: 16px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        text-align: justify;
+                    }
+                    .uc-sign-cell { 
+                        width: 50%; 
+                        text-align: center; 
+                        font-size: 10pt; 
+                        padding-top: 8px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-sign-line { 
+                        border-top: 1px solid #000; 
+                        width: 170px; 
+                        margin: 0 auto 6px auto; 
+                        height: 12px; 
+                    }
+                    .uc-footnote { 
+                        margin-top: 18px; 
+                        font-size: 10pt; 
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-main-title { 
+                        margin: 0 0 2px 0; 
+                        font-size: 12pt; 
+                        font-weight: bold;
+                        text-align: center;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-sub-title { 
+                        margin: 0 0 4px 0; 
+                        font-size: 10pt; 
+                        font-weight: normal;
+                        text-align: center;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-signatures {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-sign-left {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-sign-right {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-sign-block {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: right;
+                    }
+                    ol, ul {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    li {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: justify;
+                    }
+                    strong, b {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    u {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    div {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: justify;
+                    }
+                    span {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    br {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    i, em {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
                     }
                 </style>
             `;
@@ -2412,6 +3338,63 @@ function generateUCDocument(type = 'recurring', format = 'pdf') {
     } catch (err) {
         console.error('Error generating UC document:', err);
         showAlert('Error generating UC document: ' + err.message, 'error');
+    }
+}
+
+// Update GFR 12-B values in frontend from UC tables
+function updateGFR12BValues() {
+    try {
+        // Get Recurring UC table
+        const recurringTable = document.querySelector('table.uc-template-table:not(#ucNonRecurringTable)');
+        if (recurringTable) {
+            const tbody = recurringTable.querySelector('tbody');
+            if (tbody) {
+                const rows = tbody.querySelectorAll('tr');
+                if (rows.length > 0) {
+                    const firstRow = rows[0];
+                    const cells = firstRow.querySelectorAll('td');
+                    
+                    // Extract expenditure (col 7) and closing balance (col 8)
+                    if (cells[7]) {
+                        const expValue = cells[7].textContent.trim();
+                        document.getElementById('gfr12b-exp-recurring').textContent = expValue;
+                        console.log(`✓ Updated GFR 12-B Recurring Expenditure: ${expValue}`);
+                    }
+                    if (cells[8]) {
+                        const balValue = cells[8].textContent.trim();
+                        document.getElementById('gfr12b-balance-recurring').textContent = balValue;
+                        console.log(`✓ Updated GFR 12-B Recurring Closing Balance: ${balValue}`);
+                    }
+                }
+            }
+        }
+        
+        // Get Non-Recurring UC table
+        const nonRecurringTable = document.getElementById('ucNonRecurringTable');
+        if (nonRecurringTable) {
+            const tbody = nonRecurringTable.querySelector('tbody');
+            if (tbody) {
+                const rows = tbody.querySelectorAll('tr');
+                if (rows.length > 0) {
+                    const firstRow = rows[0];
+                    const cells = firstRow.querySelectorAll('td');
+                    
+                    // Extract expenditure (col 7) and closing balance (col 8)
+                    if (cells[7]) {
+                        const expValue = cells[7].textContent.trim();
+                        document.getElementById('gfr12b-exp-nonrecurring').textContent = expValue;
+                        console.log(`✓ Updated GFR 12-B Non-Recurring Expenditure: ${expValue}`);
+                    }
+                    if (cells[8]) {
+                        const balValue = cells[8].textContent.trim();
+                        document.getElementById('gfr12b-balance-nonrecurring').textContent = balValue;
+                        console.log(`✓ Updated GFR 12-B Non-Recurring Closing Balance: ${balValue}`);
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Error updating GFR 12-B values:', err);
     }
 }
 
