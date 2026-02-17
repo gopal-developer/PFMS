@@ -1053,8 +1053,14 @@ function populateTableData(tbody, dataList, tableType) {
                         // Set "Grant-in-aid-Total General" to same value as Expenditure incurred
                         cells[0].textContent = formatCurrency(expenditureHalf);
                         console.log(`Cell 0 "Grant-in-aid-Total General" set to: ${formatCurrency(expenditureHalf)}`);
-                        // Set "Grant-in-aid-Salary" to empty or 0
-                        cells[1].textContent = 'NA';
+                        // Set "Grant-in-aid-Salary" - NA for Recurring, Equipment for Non-Recurring
+                        if (lowerTableType.includes('recurring') && !lowerTableType.includes('non')) {
+                            cells[1].textContent = 'NA';
+                            console.log(`Cell 1 "Grant-in-aid-Salary" set to: NA (for Recurring)`);
+                        } else if (lowerTableType.includes('non')) {
+                            cells[1].textContent = 'Equipment';
+                            console.log(`Cell 1 "Grant-in-aid-Salary" set to: Equipment (for Non-Recurring)`);
+                        }
                         // Set "Total" to same value as Expenditure incurred
                         cells[2].textContent = formatCurrency(expenditureHalf);
                         console.log(`Cell 2 "Total" set to: ${formatCurrency(expenditureHalf)}`);
@@ -2767,7 +2773,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
                 data.sanction_number || ''
             ).filter(org => org).join(' and ');
             
-            page3GrantText = `Grant-in-aid of ${amountsAndDates} SANCTIONED in favour of ${organizations} during the year`;
+            page3GrantText = `${amountsAndDates} SANCTIONED in favour of ${organizations}`;
         } else {
             page3GrantText = 'Grant-in-aid of Rs. ____________________ dated __________ SANCTIONED in favour of ____________________ during the year';
         }
@@ -2872,7 +2878,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     </div>
 
     <div class="uc-paragraph">
-        (1) Certified that out of the ${page3GrantText} ${financialYearText} an amount of Rs. ${formatCurrency(expenditureHalf)} has been utilized for the purpose for which it was sanctioned, and that the balance of Rs. ${formatCurrency(closingBalance)} remaining unutilized at the end of the year __________ has been surrendered to the Government [vide No. __________ dated __________] / will be adjusted towards the Grant-in-aid payable during the next financial year.
+        (1) Certified that out of the Grant-in-aid of <u>${page3GrantText}</u> during the year ${financialYearText} an amount of <u>Rs. ${formatCurrency(expenditureHalf)}</u> has been utilized for the purpose for which it was sanctioned, and that the balance of <u>Rs. ${formatCurrency(closingBalance)}</u>  remaining unutilized at the end of the year __________ has been surrendered to the Government [vide No. __________ dated __________] / will be adjusted towards the Grant-in-aid payable during the next financial year.
     </div>
 
     <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
@@ -2881,9 +2887,8 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
 
     <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">Kind of checks exercised</div>
     <ol class="uc-list">
-        <li>______________________________________________</li>
-        <li>______________________________________________</li>
-        <li>______________________________________________</li>
+        <li>Sanction order</li>
+        <li>PFMS Report HTSA</li>
     </ol>
 
     <div class="uc-signatures" style="margin-top: 18pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
