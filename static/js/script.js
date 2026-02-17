@@ -2831,7 +2831,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         <li>Details of various schemes executed by the agency through grants-in-aid received from the same Ministry/Department or from other Ministries is enclosed at Annexure - II (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</li>
     </ol>
 
-    <table class="uc-sign-table" style="margin-top: 4px;">
+    <table class="uc-sign-table" style="margin-top: 10px;">
         <tr>
             <td class="uc-sign-date" style="padding-bottom: 0px;">
                 <div style="font-size: 9pt; line-height: 1.1;">Date:${formattedDate}</div>
