@@ -836,7 +836,7 @@ function updateGrantSummary() {
                 data.sanction_number || ''
             ).filter(org => org).join(' and ');
             
-            const summaryText = `Grant-in-aid of ${amountsAndDates} SANCTIONED in favour of ${organizations}`;
+            const summaryText = `${amountsAndDates} SANCTIONED in favour of ${organizations}`;
             const recurringElement = document.getElementById('ucGrantSummaryRecurring');
             if (recurringElement) {
                 recurringElement.innerHTML = summaryText;
@@ -854,7 +854,7 @@ function updateGrantSummary() {
                 data.sanction_number || ''
             ).filter(org => org).join(' and ');
             
-            const summaryText = `Grant-in-aid of ${amountsAndDates} SANCTIONED in favour of ${organizations}`;
+            const summaryText = `${amountsAndDates} SANCTIONED in favour of ${organizations}`;
             const nonRecurringElement = document.getElementById('ucGrantSummaryNonRecurring');
             if (nonRecurringElement) {
                 nonRecurringElement.innerHTML = summaryText;
@@ -2790,23 +2790,20 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         </p>
     </div>
 
-    <ol class="uc-list">
-        <ul><strong>Name of the Scheme:</strong> ${schemeName}</ul>
-        <ul><strong>Whether recurring or non-recurring grants:</strong> ${grantTypeText}</ul>
-        <ol><strong>Grants position at the beginning of the Financial year</strong>
-            
-                <ol>(i) Cash in Hand/Bank: Rs.0</ol>
-                <ol>(ii) Unadjusted advances: Rs.0</ol>
-                <ol>(iii) Total: Rs.0</ol>
-            
-        </ol>
-    </ol>
+    <div class="uc-list" style="text-align: left;">
+        <div><strong>Name of the Scheme:</strong> ${schemeName}</div>
+        <div><strong>Whether recurring or non-recurring grants:</strong> ${grantTypeText}</div>
+        <div><strong>Grants position at the beginning of the Financial year</strong>
+            <div style="margin-left: 20px;">
+                <div>(i) Cash in Hand/Bank: Rs.0</div>
+                <div>(ii) Unadjusted advances: Rs.0</div>
+                <div>(iii) Total: Rs.0</div>
+            </div>
+        </div>
+    </div>
 
     <div class="uc-section-title">Details of grants received, expenditure incurred and closing balances: (Actuals)</div>
     ${ucTableHTML}
-
-    <div class="uc-section-title">Grant Position Details</div>
-    ${dataColumnHTML}
 
     <div class="uc-section-title">Component wise utilization of grants:</div>
     ${componentTableHTML}
@@ -2999,7 +2996,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         }
         .uc-title-block { 
             text-align: center; 
-            margin-bottom: 12px;
+            margin-bottom: 5px;
             font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
         }
         .uc-form-title { 
@@ -3035,11 +3032,11 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
             line-height: 1.3;
         }
         .uc-list { 
-            margin-left: 18px; 
             margin-top: 1px; 
             margin-bottom: 1px;
             font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
             font-size: 10pt;
+            text-align: left;
         }
         .uc-list li { 
             margin: 1px 0; 
@@ -3297,7 +3294,7 @@ ${pageOne}<div class="page-break"></div>${pageTwo}<div class="page-break"></div>
                     }
                     .uc-title-block { 
                         text-align: center; 
-                        margin-bottom: 30px;
+                        margin-bottom: 5px;
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                     }
                     .uc-form-title { 
@@ -3332,9 +3329,9 @@ ${pageOne}<div class="page-break"></div>${pageTwo}<div class="page-break"></div>
                         font-size: 10pt;
                     }
                     .uc-list { 
-                        margin-left: 18px;
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
+                        text-align: left;
                     }
                     .uc-list li { 
                         margin: 6px 0;
