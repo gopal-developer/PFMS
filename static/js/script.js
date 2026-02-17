@@ -2682,6 +2682,36 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
             componentTableHTML = '<p>No component data</p>';
         }
 
+        // Build data column with amounts and dates
+        const ucData = (type === 'recurring') ? allUCDetailedData : allUCDetailedDataNonRecurring;
+        let dataColumnHTML = '<table style="width: 100%; border-collapse: collapse; margin: 10px 0;"><tr>';
+        let dataRows = '';
+        
+        if (ucData && ucData.length > 0) {
+            ucData.forEach((data, index) => {
+                if (index > 0 && index % 2 === 0) {
+                    dataRows += '</tr><tr>';
+                }
+                dataRows += `<td style="border: 1px solid #000; padding: 8px; text-align: center; width: 50%; font-family: 'FuturaBT-Book', Arial, sans-serif; font-size: 10pt;">
+                    <strong>Amount:</strong> ${formatCurrency(data.amount)}<br/>
+                    <strong>Date:</strong> ${data.date}
+                </td>`;
+            });
+        }
+        dataColumnHTML += dataRows + '</tr></table>';
+
+        // Extract first data item for page 3 blanks
+        let grantAmount = '';
+        let sanctionDate = '';
+        let sanction_number = '';
+        
+        if (ucData && ucData.length > 0) {
+            const firstData = ucData[0];
+            grantAmount = formatCurrency(firstData.amount);
+            sanctionDate = firstData.date;
+            sanction_number = firstData.sanction_number || '';
+        }
+
         // Build professional document HTML matching the GFR templates (header, ribbon, emblem, footer)
         const pageOne = `
 <div class="page-container">
@@ -2714,6 +2744,9 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
 
     <div class="uc-section-title">Details of grants received, expenditure incurred and closing balances: (Actuals)</div>
     ${ucTableHTML}
+
+    <div class="uc-section-title">Grant Position Details</div>
+    ${dataColumnHTML}
 
     <div class="uc-section-title">Component wise utilization of grants:</div>
     ${componentTableHTML}
@@ -2782,7 +2815,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     </div>
 
     <div class="uc-paragraph">
-        (1) Certified that out of the Grant-in-aid of Rs. ____________________ sanctioned under ____________________ dated __________ in favour of ____________________ during the year __________ an amount of Rs. ${formatCurrency(expenditureHalf)} has been utilized for the purpose for which it was sanctioned, and that the balance of Rs. ${formatCurrency(closingBalance)} remaining unutilized at the end of the year __________ has been surrendered to the Government [vide No. __________ dated __________] / will be adjusted towards the Grant-in-aid payable during the next financial year.
+        (1) Certified that out of the Grant-in-aid of Rs. <u>${grantAmount}</u> sanctioned <u>${sanctionDate}</u> in favour of <u>${sanction_number}</u> during the year __________ an amount of Rs. ${formatCurrency(expenditureHalf)} has been utilized for the purpose for which it was sanctioned, and that the balance of Rs. ${formatCurrency(closingBalance)} remaining unutilized at the end of the year __________ has been surrendered to the Government [vide No. __________ dated __________] / will be adjusted towards the Grant-in-aid payable during the next financial year.
     </div>
 
     <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
