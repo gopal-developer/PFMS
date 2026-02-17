@@ -167,6 +167,14 @@ def extract_uc_data(input_file):
                 assignment_sanction_col = col
                 break
         
+        # Find the Date column
+        date_col = None
+        for col in df.columns:
+            col_str = str(col).lower()
+            if 'date' in col_str:
+                date_col = col
+                break
+        
         # Find the Total Drawing limit issued by Parent Agency column
         total_drawing_col = None
         for col in df.columns:
@@ -189,6 +197,7 @@ def extract_uc_data(input_file):
                 closing_balance_col = col
         
         print(f"DEBUG: Assignment Sanction Col: {assignment_sanction_col}")
+        print(f"DEBUG: Date Col: {date_col}")
         print(f"DEBUG: Total Drawing Col: {total_drawing_col}")
         print(f"DEBUG: Total Available Col: {total_available_col}")
         print(f"DEBUG: Expenditure Col: {expenditure_col}")
@@ -253,6 +262,19 @@ def extract_uc_data(input_file):
                     print(f"Error extracting amount for row {idx}: {e}")
                     amount = 0
             
+            # Extract Date
+            date_value = ""
+            if date_col is not None:
+                try:
+                    date_val = row[date_col]
+                    if isinstance(date_val, pd.Series):
+                        date_val = date_val.iloc[0] if len(date_val) > 0 else ""
+                    date_value = str(date_val).strip() if date_val else ""
+                    print(f"DEBUG Row {idx}: Date: {date_value}")
+                except Exception as e:
+                    print(f"Error extracting date for row {idx}: {e}")
+                    date_value = ""
+            
             # Extract Total Available funds
             total_available = 0
             if total_available_col is not None:
@@ -297,6 +319,7 @@ def extract_uc_data(input_file):
                     uc_data_list.append({
                         'sanction_number': sanction_number,
                         'amount': amount,
+                        'date': date_value,
                         'total_available': total_available,
                         'expenditure': expenditure,
                         'closing_balance': closing_balance

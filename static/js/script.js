@@ -28,6 +28,20 @@ const toDateValue = document.getElementById('toDateValue');
 const financialYearInfo = document.getElementById('financialYearInfo');
 const financialYearValue = document.getElementById('financialYearValue');
 
+let now = new Date();
+
+let day = String(now.getDate()).padStart(2, '0');
+let month = String(now.getMonth() + 1).padStart(2, '0');
+let year = now.getFullYear();
+
+let formattedDate = `${day}.${month}.${year}`;
+
+let todate = document.getElementById('TodayDate');
+let todate1 = document.getElementById('TodayDate1');
+
+todate.innerHTML = `${formattedDate}`;
+todate1.innerHTML = `${formattedDate}`;
+
 // Format currency with commas
 function formatCurrency(value) {
     if (value === null || value === undefined || value === '') return '-';
@@ -881,15 +895,15 @@ function populateTableData(tbody, dataList, tableType) {
             // Create 9 cells: 0-2 empty, 3-5 Grant received, 6-8 separate vertical cells
             for (let j = 0; j < 9; j++) {
                 const td = document.createElement('td');
-                
-                if (j === 3) {
+
+                 if (j === 3) {
                     // Column 3: "Sanction No. (I)"
                     td.textContent = data.sanction_number || '';
                     console.log(`  Cell ${j} (Sanction No.): "${td.textContent}"`);
                 } else if (j === 4) {
                     // Column 4: "Date (ii)"
-                    td.textContent = '';
-                    console.log(`  Cell ${j} (Date): ""`);
+                    td.textContent = data.date || '';
+                    console.log(`  Cell ${j} (Date): "${td.textContent}"`);
                 } else if (j === 5) {
                     // Column 5: "Amount (iii)"
                     td.classList.add('vertical-cell');
@@ -928,7 +942,7 @@ function populateTableData(tbody, dataList, tableType) {
                     }
                 } else {
                     // Other columns (0-2): empty
-                    td.textContent = '';
+                    td.textContent = 0;
                 }
                 
                 newRow.appendChild(td);
@@ -939,6 +953,38 @@ function populateTableData(tbody, dataList, tableType) {
         });
         
         console.log(`Final ${tableType} tbody has ${tbody.querySelectorAll('tr').length} rows`);
+        
+        // Calculate and update closing balance in frontend sections
+        const closingBalance = dataList.length > 0 ? Math.abs(totalAmount - expenditureHalf) : 0;
+        const formattedClosingBalance = formatCurrency(closingBalance);
+        console.log(`Closing Balance calculated: ${closingBalance}, Formatted: ${formattedClosingBalance}`);
+        
+        // Update the frontend closing balance sections
+        if (lowerTableType.includes('recurring') && !lowerTableType.includes('non')) {
+            // Recurring closing balance
+            const cbElement = document.getElementById('closingBalanceRecurring');
+            const cbTotalElement = document.getElementById('closingBalanceTotalRecurring');
+            if (cbElement) {
+                cbElement.textContent = formattedClosingBalance;
+                console.log(`✓ Updated Recurring Closing Balance in frontend: ${formattedClosingBalance}`);
+            }
+            if (cbTotalElement) {
+                cbTotalElement.textContent = formattedClosingBalance;
+                console.log(`✓ Updated Recurring Closing Balance Total in frontend: ${formattedClosingBalance}`);
+            }
+        } else if (lowerTableType.includes('non')) {
+            // Non-Recurring closing balance
+            const cbElement = document.getElementById('closingBalanceNonRecurring');
+            const cbTotalElement = document.getElementById('closingBalanceTotalNonRecurring');
+            if (cbElement) {
+                cbElement.textContent = formattedClosingBalance;
+                console.log(`✓ Updated Non-Recurring Closing Balance in frontend: ${formattedClosingBalance}`);
+            }
+            if (cbTotalElement) {
+                cbTotalElement.textContent = formattedClosingBalance;
+                console.log(`✓ Updated Non-Recurring Closing Balance Total in frontend: ${formattedClosingBalance}`);
+            }
+        }
         
         // Also populate Component wise utilization table with the same expenditure value
         if (dataList.length > 0) {
@@ -959,7 +1005,7 @@ function populateTableData(tbody, dataList, tableType) {
                         cells[0].textContent = formatCurrency(expenditureHalf);
                         console.log(`Cell 0 "Grant-in-aid-Total General" set to: ${formatCurrency(expenditureHalf)}`);
                         // Set "Grant-in-aid-Salary" to empty or 0
-                        cells[1].textContent = '';
+                        cells[1].textContent = 'NA';
                         // Set "Total" to same value as Expenditure incurred
                         cells[2].textContent = formatCurrency(expenditureHalf);
                         console.log(`Cell 2 "Total" set to: ${formatCurrency(expenditureHalf)}`);
@@ -2658,11 +2704,11 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         <li><strong>Name of the Scheme:</strong> ${schemeName}</li>
         <li><strong>Whether recurring or non-recurring grants:</strong> ${grantTypeText}</li>
         <li><strong>Grants position at the beginning of the Financial year</strong>
-            <ul>
-                <li>(i) Cash in Hand/Bank: Rs. ______________________</li>
-                <li>(ii) Unadjusted advances: Rs. ______________________</li>
-                <li>(iii) Total: Rs. ______________________</li>
-            </ul>
+            
+                <li>(i) Cash in Hand/Bank: Rs.0</li>
+                <li>(ii) Unadjusted advances: Rs.0</li>
+                <li>(iii) Total: Rs.0</li>
+            
         </li>
     </ol>
 
@@ -2672,7 +2718,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     <div class="uc-section-title">Component wise utilization of grants:</div>
     ${componentTableHTML}
 
-    <div class="uc-end-section" style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">Details of grants position at the end of the year<br/>(i) Cash in Hand/Bank: Rs.<br/>(ii) Unadjusted Advances: Rs.<br/>(iii) Total: Rs.</div>
+    <div class="uc-end-section" style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">Details of grants position at the end of the year<br/>(i) Cash in Hand/Bank: Rs. ${formatCurrency(closingBalance)}<br/>(ii) Unadjusted Advances: Rs.<br/>(iii) Total: Rs. ${formatCurrency(closingBalance)}</div>
 </div>
 `;
 
@@ -2698,8 +2744,8 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     <table class="uc-sign-table" style="margin-top: 4px;">
         <tr>
             <td class="uc-sign-date" style="padding-bottom: 0px;">
-                <div style="font-size: 9pt; line-height: 1.1;">Date: _______________________</div>
-                <div style="font-size: 9pt; line-height: 1.1;">Place: _______________________</div>
+                <div style="font-size: 9pt; line-height: 1.1;">Date:${formattedDate}</div>
+                <div style="font-size: 9pt; line-height: 1.1;">Place: Chennai</div>
             </td>
             <td class="uc-sign-date"></td>
         </tr>
