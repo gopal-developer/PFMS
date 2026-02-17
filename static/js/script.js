@@ -809,10 +809,59 @@ function populateUCData(ucData) {
         console.log('=== populateUCData completed successfully ===');
         
         // Update GFR 12-B values in frontend
-        updateGFR12BValues();
+        // Add a small delay to ensure DOM is ready
+        setTimeout(() => {
+            updateGFR12BValues();
+        }, 100);
+        
+        // Update grant summary in frontend
+        updateGrantSummary();
     } catch (error) {
         console.error('Error populating UC data:', error);
         console.error('Stack trace:', error.stack);
+    }
+}
+
+// Function to update grant summary sections in frontend
+function updateGrantSummary() {
+    try {
+        // Update Recurring summary
+        const recurringData = allUCDetailedData || [];
+        if (recurringData.length > 0) {
+            const amountsAndDates = recurringData.map(data => 
+                `Rs ${formatCurrency(data.amount)} dated ${data.date}`
+            ).join(' and ');
+            
+            const organizations = recurringData.map(data => 
+                data.sanction_number || ''
+            ).filter(org => org).join(' and ');
+            
+            const summaryText = `Grant-in-aid of ${amountsAndDates} SANCTIONED in favour of ${organizations}`;
+            const recurringElement = document.getElementById('ucGrantSummaryRecurring');
+            if (recurringElement) {
+                recurringElement.innerHTML = summaryText;
+            }
+        }
+        
+        // Update Non-Recurring summary
+        const nonRecurringData = allUCDetailedDataNonRecurring || [];
+        if (nonRecurringData.length > 0) {
+            const amountsAndDates = nonRecurringData.map(data => 
+                `Rs ${formatCurrency(data.amount)} dated ${data.date}`
+            ).join(' and ');
+            
+            const organizations = nonRecurringData.map(data => 
+                data.sanction_number || ''
+            ).filter(org => org).join(' and ');
+            
+            const summaryText = `Grant-in-aid of ${amountsAndDates} SANCTIONED in favour of ${organizations}`;
+            const nonRecurringElement = document.getElementById('ucGrantSummaryNonRecurring');
+            if (nonRecurringElement) {
+                nonRecurringElement.innerHTML = summaryText;
+            }
+        }
+    } catch (error) {
+        console.error('Error updating grant summary:', error);
     }
 }
 
@@ -1013,6 +1062,13 @@ function populateTableData(tbody, dataList, tableType) {
                     }
                 }
             }
+        }
+        
+        // Update GFR 12-B values after tables are populated
+        if (lowerTableType.includes('recurring')) {
+            setTimeout(() => {
+                updateGFR12BValues();
+            }, 50);
         }
 
     } catch (error) {
@@ -2700,16 +2756,20 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         }
         dataColumnHTML += dataRows + '</tr></table>';
 
-        // Extract first data item for page 3 blanks
-        let grantAmount = '';
-        let sanctionDate = '';
-        let sanction_number = '';
-        
+        // Build page 3 paragraph with all UC data in format: "Rs amount1 dated date1 and amount2 dated date2..."
+        let page3GrantText = '';
         if (ucData && ucData.length > 0) {
-            const firstData = ucData[0];
-            grantAmount = formatCurrency(firstData.amount);
-            sanctionDate = firstData.date;
-            sanction_number = firstData.sanction_number || '';
+            const amountsAndDates = ucData.map(data => 
+                `Rs ${formatCurrency(data.amount)} dated ${data.date}`
+            ).join(' and ');
+            
+            const organizations = ucData.map(data => 
+                data.sanction_number || ''
+            ).filter(org => org).join(' and ');
+            
+            page3GrantText = `Grant-in-aid of ${amountsAndDates} SANCTIONED in favour of ${organizations} during the year`;
+        } else {
+            page3GrantText = 'Grant-in-aid of Rs. ____________________ dated __________ SANCTIONED in favour of ____________________ during the year';
         }
 
         // Build professional document HTML matching the GFR templates (header, ribbon, emblem, footer)
@@ -2731,15 +2791,15 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     </div>
 
     <ol class="uc-list">
-        <li><strong>Name of the Scheme:</strong> ${schemeName}</li>
-        <li><strong>Whether recurring or non-recurring grants:</strong> ${grantTypeText}</li>
-        <li><strong>Grants position at the beginning of the Financial year</strong>
+        <ul><strong>Name of the Scheme:</strong> ${schemeName}</ul>
+        <ul><strong>Whether recurring or non-recurring grants:</strong> ${grantTypeText}</ul>
+        <ol><strong>Grants position at the beginning of the Financial year</strong>
             
-                <li>(i) Cash in Hand/Bank: Rs.0</li>
-                <li>(ii) Unadjusted advances: Rs.0</li>
-                <li>(iii) Total: Rs.0</li>
+                <ol>(i) Cash in Hand/Bank: Rs.0</ol>
+                <ol>(ii) Unadjusted advances: Rs.0</ol>
+                <ol>(iii) Total: Rs.0</ol>
             
-        </li>
+        </ol>
     </ol>
 
     <div class="uc-section-title">Details of grants received, expenditure incurred and closing balances: (Actuals)</div>
@@ -2815,7 +2875,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     </div>
 
     <div class="uc-paragraph">
-        (1) Certified that out of the Grant-in-aid of Rs. <u>${grantAmount}</u> sanctioned <u>${sanctionDate}</u> in favour of <u>${sanction_number}</u> during the year __________ an amount of Rs. ${formatCurrency(expenditureHalf)} has been utilized for the purpose for which it was sanctioned, and that the balance of Rs. ${formatCurrency(closingBalance)} remaining unutilized at the end of the year __________ has been surrendered to the Government [vide No. __________ dated __________] / will be adjusted towards the Grant-in-aid payable during the next financial year.
+        (1) Certified that out of the ${page3GrantText} ${financialYearText} an amount of Rs. ${formatCurrency(expenditureHalf)} has been utilized for the purpose for which it was sanctioned, and that the balance of Rs. ${formatCurrency(closingBalance)} remaining unutilized at the end of the year __________ has been surrendered to the Government [vide No. __________ dated __________] / will be adjusted towards the Grant-in-aid payable during the next financial year.
     </div>
 
     <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
@@ -3471,6 +3531,72 @@ function updateGFR12BValues() {
                     }
                 }
             }
+        }
+        
+        // Update Recurring grant details - show all amounts and dates combined
+        if (allUCDetailedData && allUCDetailedData.length > 0) {
+            // Build string with all amounts and dates: "Rs X dated Y and Rs Z dated W"
+            const amountsAndDates = allUCDetailedData.map(data => 
+                `Rs ${formatCurrency(data.amount)} dated ${data.date}`
+            ).join(' and ');
+            
+            // Build organizations string
+            const organizations = allUCDetailedData.map(data => 
+                data.sanction_number || ''
+            ).filter(org => org).join(' and ');
+            
+            const grantAmountEl = document.getElementById('gfr12b-grant-amount-recurring');
+            const grantDateEl = document.getElementById('gfr12b-grant-date-recurring');
+            const sanctionNoEl = document.getElementById('gfr12b-sanction-no-recurring');
+            const orgEl = document.getElementById('gfr12b-org-recurring');
+            const yearEl = document.getElementById('gfr12b-year-recurring');
+            
+            if (grantAmountEl) grantAmountEl.textContent = amountsAndDates;
+            if (grantDateEl) grantDateEl.textContent = '';
+            if (sanctionNoEl) sanctionNoEl.textContent = '';
+            if (orgEl) orgEl.textContent = organizations;
+            if (yearEl) yearEl.textContent = (financialYearValue && financialYearValue.textContent) || '2025-26';
+            
+            console.log(`✓ Updated GFR 12-B Recurring Grant Details:`, {
+                amountsAndDates: amountsAndDates,
+                orgs: organizations,
+                year: (financialYearValue && financialYearValue.textContent) || '2025-26'
+            });
+        } else {
+            console.warn('No Recurring UC data available for grant details');
+        }
+        
+        // Update Non-Recurring grant details - show all amounts and dates combined
+        if (allUCDetailedDataNonRecurring && allUCDetailedDataNonRecurring.length > 0) {
+            // Build string with all amounts and dates: "Rs X dated Y and Rs Z dated W"
+            const amountsAndDates = allUCDetailedDataNonRecurring.map(data => 
+                `Rs ${formatCurrency(data.amount)} dated ${data.date}`
+            ).join(' and ');
+            
+            // Build organizations string
+            const organizations = allUCDetailedDataNonRecurring.map(data => 
+                data.sanction_number || ''
+            ).filter(org => org).join(' and ');
+            
+            const grantAmountEl = document.getElementById('gfr12b-grant-amount-nonrecurring');
+            const grantDateEl = document.getElementById('gfr12b-grant-date-nonrecurring');
+            const sanctionNoEl = document.getElementById('gfr12b-sanction-no-nonrecurring');
+            const orgEl = document.getElementById('gfr12b-org-nonrecurring');
+            const yearEl = document.getElementById('gfr12b-year-nonrecurring');
+            
+            if (grantAmountEl) grantAmountEl.textContent = amountsAndDates;
+            if (grantDateEl) grantDateEl.textContent = '';
+            if (sanctionNoEl) sanctionNoEl.textContent = '';
+            if (orgEl) orgEl.textContent = organizations;
+            if (yearEl) yearEl.textContent = (financialYearValue && financialYearValue.textContent) || '2025-26';
+            
+            console.log(`✓ Updated GFR 12-B Non-Recurring Grant Details:`, {
+                amountsAndDates: amountsAndDates,
+                orgs: organizations,
+                year: (financialYearValue && financialYearValue.textContent) || '2025-26'
+            });
+        } else {
+            console.warn('No Non-Recurring UC data available for grant details');
         }
     } catch (err) {
         console.error('Error updating GFR 12-B values:', err);
