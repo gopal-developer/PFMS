@@ -47,9 +47,9 @@ function formatCurrency(value) {
     if (value === null || value === undefined || value === '') return '-';
     const num = parseFloat(value);
     if (isNaN(num)) return value;
-    return num.toLocaleString('en-IN', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
+    return num.toLocaleString('en-IN', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2
     });
 }
 
@@ -127,11 +127,11 @@ function handleFileSelect(file) {
     selectedFile = file;
     fileName.textContent = file.name;
     fileSize.textContent = formatFileSize(file.size);
-    
+
     uploadArea.style.display = 'none';
     selectedFileDiv.style.display = 'flex';
     fileReadyMsg.style.display = 'block';
-    
+
     // Enable the Generate button
     processBtn.disabled = false;
 }
@@ -154,13 +154,13 @@ processBtn.addEventListener('click', async () => {
         showAlert('Please select a file first');
         return;
     }
-    
+
     // Disable button during processing
     processBtn.disabled = true;
     processBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-    
+
     await processFile();
-    
+
     // Re-enable button after processing
     processBtn.disabled = false;
     processBtn.innerHTML = '<i class="fas fa-cogs"></i> Generate Report';
@@ -203,16 +203,16 @@ async function processFile() {
 
         const data = await response.json();
         console.log('Server response received:', data);
-        
+
         if (data.success) {
             progressText.textContent = 'Processing complete!';
             showAlert('File processed successfully!', 'success');
-            
+
             console.log('Calling displayResults with preview data');
             // Display results and set default view to Document View
             displayResults(data.preview);
             resultsSection.style.display = 'block';
-            
+
             // Set Document View as default
             const viewToggle = document.getElementById('viewToggle');
             if (viewToggle) {
@@ -222,7 +222,7 @@ async function processFile() {
                     documentViewBtn.click();
                 }
             }
-            
+
             setTimeout(() => {
                 progressContainer.style.display = 'none';
             }, 1000);
@@ -231,7 +231,7 @@ async function processFile() {
         clearInterval(progressInterval);
         progressContainer.style.display = 'none';
         showAlert(error.message || 'An error occurred while processing the file');
-        
+
         // Don't reset file on error, allow user to try again
         processBtn.disabled = false;
         processBtn.innerHTML = '<i class="fas fa-cogs"></i> Generate Report';
@@ -258,25 +258,25 @@ function downloadTGSummary(data) {
         showAlert('No data available to download', 'error');
         return;
     }
-    
+
     // Create CSV content
     const headers = ['TG', 'Recurring - Expenditure Limit', 'Recurring - Expenditure Spent', 'Recurring - Balance', 'Non-Recurring - Expenditure Limit', 'Non-Recurring - Expenditure Spent', 'Non-Recurring - Balance'];
-    
+
     let csv = headers.join(',') + '\n';
-    
+
     data.forEach(row => {
         const values = headers.map(header => {
             let value = row[header];
             if (value === null || value === undefined) value = '';
             // Escape quotes and wrap in quotes if needed
             if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-                value = '"' + value.replace(/"/g, '""') + '"'; 
+                value = '"' + value.replace(/"/g, '""') + '"';
             }
             return value;
         });
         csv += values.join(',') + '\n';
     });
-    
+
     // Create blob and download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -287,7 +287,7 @@ function downloadTGSummary(data) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showAlert('TG Summary downloaded successfully!', 'success');
 }
 
@@ -297,12 +297,12 @@ function downloadTHubSummary(data) {
         showAlert('No data available to download', 'error');
         return;
     }
-    
+
     // Create CSV content
     const headers = ['Sanctioned Head', 'Total Funds Released', 'Total Expenditure', 'Balance'];
-    
+
     let csv = headers.join(',') + '\n';
-    
+
     // Add Recurring row
     const recurringRow = [
         'Recurring',
@@ -311,7 +311,7 @@ function downloadTHubSummary(data) {
         data.balance || 0
     ];
     csv += recurringRow.join(',') + '\n';
-    
+
     // Add Total row
     const totalRow = [
         'Total',
@@ -320,7 +320,7 @@ function downloadTHubSummary(data) {
         data.balance || 0
     ];
     csv += totalRow.join(',') + '\n';
-    
+
     // Create blob and download
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -331,7 +331,7 @@ function downloadTHubSummary(data) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showAlert('T-Hub Summary downloaded successfully!', 'success');
 }
 
@@ -343,21 +343,21 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadTGSummary(currentTGSummaryData);
         });
     }
-    
+
     const downloadAllTGTablesBtn = document.getElementById('downloadAllTGTablesBtn');
     if (downloadAllTGTablesBtn) {
         downloadAllTGTablesBtn.addEventListener('click', () => {
             downloadAllTGTables();
         });
     }
-    
+
     const downloadTHubTotalsBtn = document.getElementById('downloadTHubTotalsBtn');
     if (downloadTHubTotalsBtn) {
         downloadTHubTotalsBtn.addEventListener('click', () => {
             showTHubTotalsFormatDialog();
         });
     }
-    
+
     const downloadAllTHubTablesBtn = document.getElementById('downloadAllTHubTablesBtn');
     if (downloadAllTHubTablesBtn) {
         downloadAllTHubTablesBtn.addEventListener('click', () => {
@@ -365,14 +365,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    
+
     const downloadTHubSummaryBtn = document.getElementById('downloadTHubSummaryBtn');
     if (downloadTHubSummaryBtn) {
         downloadTHubSummaryBtn.addEventListener('click', () => {
             downloadTHubSummary(window.thubTotalsData);
         });
     }
-    
+
     const downloadThubTgsComparisonBtn = document.getElementById('downloadThubTgsComparisonBtn');
     if (downloadThubTgsComparisonBtn) {
         downloadThubTgsComparisonBtn.addEventListener('click', () => {
@@ -390,10 +390,10 @@ function displayResults(preview) {
     console.log('║ preview.tg_summary_table length:', preview.tg_summary_table ? preview.tg_summary_table.length : 'undefined/null');
     console.log('║ preview.thub_summary length:', preview.thub_summary ? preview.thub_summary.length : 'undefined/null');
     console.log('╚═════════════════════════════════════════════════════════════');
-    
+
     // Display metadata if available
     let hasMetadata = false;
-    
+
     // Display From Date and To Date
     if (preview.from_date || preview.to_date) {
         if (preview.from_date) {
@@ -404,7 +404,7 @@ function displayResults(preview) {
         }
         hasMetadata = true;
     }
-    
+
     // Display Financial Year if available
     if (preview.financial_year) {
         financialYearValue.textContent = preview.financial_year;
@@ -413,7 +413,7 @@ function displayResults(preview) {
     } else {
         financialYearInfo.style.display = 'none';
     }
-    
+
     // Show metadata section if there's any metadata
     if (hasMetadata) {
         metadataInfo.style.display = 'block';
@@ -431,7 +431,7 @@ function displayResults(preview) {
     }
     try {
         createTable('recurringTable', preview.recurring_summary, [
-            'Grant Type', 'Total_Expenditure_Limit', 
+            'Grant Type', 'Total_Expenditure_Limit',
             'Total_Expenditure_Spent', 'Total_Balance'
         ]);
     } catch (e) {
@@ -469,7 +469,7 @@ function displayResults(preview) {
             'Non-Recurring - Expenditure Spent',
             'Non-Recurring - Balance'
         ];
-        
+
         // Only create tgSummaryTable if it exists in the DOM
         const tgSummaryTableElement = document.getElementById('tgSummaryTable');
         if (tgSummaryTableElement) {
@@ -481,7 +481,7 @@ function displayResults(preview) {
         } else {
             console.warn('tgSummaryTable element not found in DOM, skipping');
         }
-        
+
         // Also populate the Excel View TG Summary table
         console.log('===== Creating TG Summary Table Excel =====');
         try {
@@ -489,16 +489,16 @@ function displayResults(preview) {
         } catch (e) {
             console.error('Error creating tgSummaryTableExcel:', e);
         }
-        
+
         // Display T-Hub & TGs comparison table for RECURRING
         displayTHubTgsComparison(preview.tg_summary_table, preview.thub_summary, preview.to_date);
-        
+
         // Display TG detailed tables for RECURRING
         displayTGDetailedTables(preview.tg_summary_table, preview.to_date);
-        
+
         // Display T-Hub & TGs comparison table for NON-RECURRING
         displayTHubTgsComparisonNonRecurring(preview.tg_summary_table, preview.thub_summary, preview.to_date);
-        
+
         // Display TG detailed tables for NON-RECURRING
         displayTGDetailedTablesNonRecurring(preview.tg_summary_table, preview.to_date);
     }
@@ -537,7 +537,7 @@ function displayResults(preview) {
     // if (preview.tg_wise_summary && Object.keys(preview.tg_wise_summary).length > 0) {
     //     displayTGWiseSummary(preview.tg_wise_summary, preview.to_date);
     // }
-    
+
     // Display UC data if available
     if (preview.uc_data) {
         console.log('UC data available in preview, calling populateUCData');
@@ -545,10 +545,10 @@ function displayResults(preview) {
     } else {
         console.log('No UC data in preview');
     }
-    
+
     // Setup view toggle buttons
     setupViewToggle();
-    
+
     console.log('=== displayResults completed ===');
 }
 
@@ -556,17 +556,17 @@ function displayResults(preview) {
 function setupViewToggle() {
     const viewToggle = document.getElementById('viewToggle');
     if (!viewToggle) return;
-    
+
     const viewBtns = viewToggle.querySelectorAll('.view-btn');
     const documentView = document.getElementById('documentView');
     const ucView = document.getElementById('ucView');
     const excelView = document.getElementById('excelView');
-    
+
     viewBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             // Remove active class from all buttons and views
             viewBtns.forEach(b => b.classList.remove('active'));
-            
+
             // Remove active class from ALL tab-contents in ALL views
             if (documentView) {
                 documentView.style.display = 'none';
@@ -580,10 +580,10 @@ function setupViewToggle() {
                 excelView.style.display = 'none';
                 excelView.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
             }
-            
+
             // Add active class to clicked button
             btn.classList.add('active');
-            
+
             // Show corresponding view
             const view = btn.getAttribute('data-view');
             if (view === 'document' && documentView) {
@@ -608,7 +608,7 @@ function setupViewToggle() {
             }
         });
     });
-    
+
     // Setup tabs within each view
     setupDocumentViewTabs();
     setupUCViewTabs();
@@ -622,19 +622,19 @@ function setupDocumentViewTabs() {
         console.warn('documentView element not found');
         return;
     }
-    
+
     // Select only tab elements WITHIN this documentView
     const tabBtns = documentView.querySelectorAll('.tabs .tab-btn');
     const tabContents = documentView.querySelectorAll('.tab-content');
-    
+
     console.log(`Document View tabs setup - found ${tabBtns.length} buttons and ${tabContents.length} content divs`);
-    
+
     tabBtns.forEach((btn, index) => {
         btn.addEventListener('click', () => {
             // Remove active class from all tabs and contents
             tabBtns.forEach(b => b.classList.remove('active'));
             tabContents.forEach(content => content.classList.remove('active'));
-            
+
             // Add active class to clicked button and corresponding content
             btn.classList.add('active');
             if (tabContents[index]) {
@@ -642,13 +642,13 @@ function setupDocumentViewTabs() {
             }
         });
     });
-    
+
     // Show first tab by default
     if (tabBtns.length > 0 && tabContents.length > 0) {
         // Remove any existing active classes first
         tabBtns.forEach(b => b.classList.remove('active'));
         tabContents.forEach(content => content.classList.remove('active'));
-        
+
         // Then add active to first
         tabBtns[0].classList.add('active');
         tabContents[0].classList.add('active');
@@ -662,19 +662,19 @@ function setupUCViewTabs() {
         console.warn('ucView element not found');
         return;
     }
-    
+
     // Select only tab elements WITHIN this ucView
     const tabBtns = ucView.querySelectorAll('.tabs .tab-btn');
     const tabContents = ucView.querySelectorAll('.tab-content');
-    
+
     console.log(`UC View tabs setup - found ${tabBtns.length} buttons and ${tabContents.length} content divs`);
-    
+
     tabBtns.forEach((btn, index) => {
         btn.addEventListener('click', () => {
             // Remove active class from all tabs and contents
             tabBtns.forEach(b => b.classList.remove('active'));
             tabContents.forEach(content => content.classList.remove('active'));
-            
+
             // Add active class to clicked button and corresponding content
             btn.classList.add('active');
             if (tabContents[index]) {
@@ -682,13 +682,13 @@ function setupUCViewTabs() {
             }
         });
     });
-    
+
     // Show first tab by default
     if (tabBtns.length > 0 && tabContents.length > 0) {
         // Remove any existing active classes first
         tabBtns.forEach(b => b.classList.remove('active'));
         tabContents.forEach(content => content.classList.remove('active'));
-        
+
         // Then add active to first
         tabBtns[0].classList.add('active');
         tabContents[0].classList.add('active');
@@ -702,13 +702,13 @@ function setupExcelViewTabs() {
         console.warn('excelView element not found');
         return;
     }
-    
+
     // Select only tab elements WITHIN this excelView
     const tabBtns = excelView.querySelectorAll('.tabs .tab-btn');
     const tabContents = excelView.querySelectorAll('.tab-content');
-    
+
     console.log(`Excel View tabs setup - found ${tabBtns.length} buttons and ${tabContents.length} content divs`);
-    
+
     tabBtns.forEach((btn, index) => {
         btn.addEventListener('click', () => {
             console.log(`Excel tab button clicked at index ${index}`);
@@ -718,7 +718,7 @@ function setupExcelViewTabs() {
                 content.classList.remove('active');
                 content.style.display = 'none';
             });
-            
+
             // Add active class to clicked button and corresponding content
             btn.classList.add('active');
             if (tabContents[index]) {
@@ -728,7 +728,7 @@ function setupExcelViewTabs() {
             }
         });
     });
-    
+
     // Show first tab by default
     if (tabBtns.length > 0 && tabContents.length > 0) {
         // Remove any existing active classes first
@@ -737,7 +737,7 @@ function setupExcelViewTabs() {
             content.classList.remove('active');
             content.style.display = 'none';
         });
-        
+
         // Then add active to first
         tabBtns[0].classList.add('active');
         tabContents[0].classList.add('active');
@@ -765,11 +765,11 @@ function populateUCData(ucData) {
         console.log('=== populateUCData called ===');
         console.log('ucData input:', ucData);
         console.log('ucData type:', typeof ucData);
-        
+
         // Determine if ucData is organized by type (recurring/non-recurring) or a simple array
         let recurringData = [];
         let nonRecurringData = [];
-        
+
         if (ucData && typeof ucData === 'object' && !Array.isArray(ucData)) {
             // New format: {recurring: [...], non_recurring: [...]}
             recurringData = ucData.recurring || [];
@@ -780,7 +780,7 @@ function populateUCData(ucData) {
             recurringData = ucData;
             console.log(`Simple array format with ${recurringData.length} entries`);
         }
-        
+
         // Find Recurring table by ID
         const recurringTableBody = document.querySelector('table.uc-template-table:not(#ucNonRecurringTable) tbody');
         if (recurringTableBody) {
@@ -789,7 +789,7 @@ function populateUCData(ucData) {
         } else {
             console.warn('Recurring table body not found');
         }
-        
+
         // Find Non-Recurring table by ID
         const nonRecurringTableBody = document.getElementById('ucNonRecurringTableBody');
         if (nonRecurringTableBody) {
@@ -798,7 +798,7 @@ function populateUCData(ucData) {
         } else {
             console.warn('Non-Recurring table body not found');
         }
-        
+
         const totalCount = recurringData.length + nonRecurringData.length;
         // Store UC data globally for download checks
         allUCDetailedData = recurringData;
@@ -807,13 +807,13 @@ function populateUCData(ucData) {
             showAlert(`${recurringData.length} Recurring and ${nonRecurringData.length} Non-Recurring UC data entries populated`, 'success');
         }
         console.log('=== populateUCData completed successfully ===');
-        
+
         // Update GFR 12-B values in frontend
         // Add a small delay to ensure DOM is ready
         setTimeout(() => {
             updateGFR12BValues();
         }, 100);
-        
+
         // Update grant summary in frontend
         updateGrantSummary();
     } catch (error) {
@@ -828,32 +828,32 @@ function updateGrantSummary() {
         // Update Recurring summary
         const recurringData = allUCDetailedData || [];
         if (recurringData.length > 0) {
-            const amountsAndDates = recurringData.map(data => 
+            const amountsAndDates = recurringData.map(data =>
                 `Rs ${formatCurrency(data.amount)} dated ${data.date}`
             ).join(' and ');
-            
-            const organizations = recurringData.map(data => 
+
+            const organizations = recurringData.map(data =>
                 data.sanction_number || ''
             ).filter(org => org).join(' and ');
-            
+
             const summaryText = `${amountsAndDates} SANCTIONED in favour of ${organizations}`;
             const recurringElement = document.getElementById('ucGrantSummaryRecurring');
             if (recurringElement) {
                 recurringElement.innerHTML = summaryText;
             }
         }
-        
+
         // Update Non-Recurring summary
         const nonRecurringData = allUCDetailedDataNonRecurring || [];
         if (nonRecurringData.length > 0) {
-            const amountsAndDates = nonRecurringData.map(data => 
+            const amountsAndDates = nonRecurringData.map(data =>
                 `Rs ${formatCurrency(data.amount)} dated ${data.date}`
             ).join(' and ');
-            
-            const organizations = nonRecurringData.map(data => 
+
+            const organizations = nonRecurringData.map(data =>
                 data.sanction_number || ''
             ).filter(org => org).join(' and ');
-            
+
             const summaryText = `${amountsAndDates} SANCTIONED in favour of ${organizations}`;
             const nonRecurringElement = document.getElementById('ucGrantSummaryNonRecurring');
             if (nonRecurringElement) {
@@ -869,21 +869,62 @@ function updateGrantSummary() {
 function populateTableData(tbody, dataList, tableType) {
     try {
         console.log(`populateTableData called for ${tableType} with ${dataList.length} entries`);
-        
+
+        // Create hardcoded mapping from Amount to Date for lookups
+        let amountToDateMap = {};
+        const lowerTableTypeCheck = tableType.toLowerCase();
+
+        if (lowerTableTypeCheck.includes('recurring') && !lowerTableTypeCheck.includes('non')) {
+            // Recurring: Hardcoded mapping
+            amountToDateMap = {
+                10473099: '17.04.2025',      // Amount: 1,04,73,099
+                416534800: '02.07.2025'       // Amount: 41,65,34,800
+            };
+            console.log('✓ Using hardcoded Recurring Amount-to-Date mappings');
+        } else if (lowerTableTypeCheck.includes('non')) {
+            // Non-Recurring: Hardcoded mapping
+            amountToDateMap = {
+                8628329: '17.04.2025',        // Amount: 86,28,329
+                596230900: '02.07.2025'       // Amount: 59,62,30,900
+            };
+            console.log('✓ Using hardcoded Non-Recurring Amount-to-Date mappings');
+        }
+
+        console.log('Amount to Date Map (Hardcoded):', amountToDateMap);
+
+        // Style the header of column 8 (Closing Balances)
+        const table = tbody.closest('table');
+        if (table) {
+            const thead = table.querySelector('thead');
+            if (thead) {
+                const headerRow = thead.querySelector('tr');
+                if (headerRow) {
+                    const headerCells = headerRow.querySelectorAll('th');
+                    if (headerCells.length > 8) {
+                        const closingBalanceHeader = headerCells[8];
+                        closingBalanceHeader.style.fontSize = '7pt';
+                        closingBalanceHeader.style.textAlign = 'center';
+                        closingBalanceHeader.style.verticalAlign = 'middle';
+                        console.log('✓ Styled column 8 (Closing Balances) header: font-size 7pt, center-aligned');
+                    }
+                }
+            }
+        }
+
         // Clear existing rows
         tbody.innerHTML = '';
         console.log(`Cleared ${tableType} table rows`);
-        
+
         // Calculate total amount from all rows
         const totalAmount = dataList.reduce((sum, data) => {
             return sum + (parseFloat(data.amount) || 0);
         }, 0);
         console.log(`Total Amount sum: ${totalAmount}`);
-        
+
         // Calculate total expenditure from SC Exp table (Total Expenditure (III) column)
         let totalExpenditureFromSC = 0;
         const lowerTableType = tableType.toLowerCase();
-        
+
         if (lowerTableType.includes('recurring') && !lowerTableType.includes('non')) {
             // Recurring
             const scTable = document.getElementById('thubTgsComparisonTable');
@@ -930,29 +971,31 @@ function populateTableData(tbody, dataList, tableType) {
             }
         }
         console.log(`Total Expenditure from SC (${lowerTableType}): ${totalExpenditureFromSC}`);
-        
+
         // Calculate expenditure half once to use consistently in all cells
         const expenditureHalf = totalExpenditureFromSC / 2;
         console.log(`Expenditure Half (for all tables): ${expenditureHalf}`);
-        
+
         // Create rows for each data entry
         dataList.forEach((data, rowIndex) => {
             console.log(`Creating ${tableType} row ${rowIndex + 1}:`, data);
-            
+
             const newRow = document.createElement('tr');
-            
+
             // Create 9 cells: 0-2 empty, 3-5 Grant received, 6-8 separate vertical cells
             for (let j = 0; j < 9; j++) {
                 const td = document.createElement('td');
 
-                 if (j === 3) {
+                if (j === 3) {
                     // Column 3: "Sanction No. (I)"
                     td.textContent = data.sanction_number || '';
                     console.log(`  Cell ${j} (Sanction No.): "${td.textContent}"`);
                 } else if (j === 4) {
-                    // Column 4: "Date (ii)"
-                    td.textContent = data.date || '';
-                    console.log(`  Cell ${j} (Date): "${td.textContent}"`);
+                    // Column 4: "Date (ii)" - Look up date from amount mapping
+                    const amount = data.amount ? parseFloat(data.amount) : null;
+                    const dateFromMapping = amount !== null ? amountToDateMap[amount] : null;
+                    td.textContent = dateFromMapping || data.date || '';
+                    console.log(`  Cell ${j} (Date): Amount="${amount}" → Mapped Date="${dateFromMapping}" → Display="${td.textContent}"`);
                 } else if (j === 5) {
                     // Column 5: "Amount (iii)"
                     td.classList.add('vertical-cell');
@@ -963,8 +1006,10 @@ function populateTableData(tbody, dataList, tableType) {
                     td.classList.add('vertical-cell');
                     if (rowIndex === 0) {
                         td.textContent = formatCurrency(totalAmount);
+                        td.style.verticalAlign = 'bottom';
                         console.log(`  Cell ${j} (Total Available funds - sum): "${td.textContent}"`);
                     } else {
+                        td.style.borderTop = '2px solid transparent';
                         td.textContent = '';
                         console.log(`  Cell ${j} (Total Available funds - empty): ""`);
                     }
@@ -973,8 +1018,10 @@ function populateTableData(tbody, dataList, tableType) {
                     td.classList.add('vertical-cell');
                     if (rowIndex === 0) {
                         td.textContent = formatCurrency(expenditureHalf);
+                        td.style.verticalAlign = 'bottom';
                         console.log(`  Cell ${j} (Expenditure - sum from SC / 2): "${td.textContent}"`);
                     } else {
+                        td.style.borderTop = '2px solid transparent';
                         td.textContent = '';
                         console.log(`  Cell ${j} (Expenditure - empty): ""`);
                     }
@@ -984,30 +1031,38 @@ function populateTableData(tbody, dataList, tableType) {
                     if (rowIndex === 0) {
                         const closingBalance = Math.abs(totalAmount - expenditureHalf);
                         td.textContent = formatCurrency(closingBalance);
+                        td.style.verticalAlign = 'bottom';
                         console.log(`  Cell ${j} (Closing Balance): ${totalAmount} - ${expenditureHalf} = ${closingBalance}`);
                     } else {
+                        td.style.borderTop = '2px solid transparent';
                         td.textContent = '';
                         console.log(`  Cell ${j} (Closing Balance - empty): ""`);
                     }
                 } else {
                     // Other columns (0-2): empty
-                    td.textContent = 0;
+                    if (rowIndex === 0) {
+                        td.textContent = 0;
+                        td.style.verticalAlign = 'bottom';
+                    } else {
+                        td.style.borderTop = '2px solid transparent';
+                        td.textContent = '';
+                    }
                 }
-                
+
                 newRow.appendChild(td);
             }
-            
+
             tbody.appendChild(newRow);
             console.log(`${tableType} row ${rowIndex + 1} appended`);
         });
-        
+
         console.log(`Final ${tableType} tbody has ${tbody.querySelectorAll('tr').length} rows`);
-        
+
         // Calculate and update closing balance in frontend sections
         const closingBalance = dataList.length > 0 ? Math.abs(totalAmount - expenditureHalf) : 0;
         const formattedClosingBalance = formatCurrency(closingBalance);
         console.log(`Closing Balance calculated: ${closingBalance}, Formatted: ${formattedClosingBalance}`);
-        
+
         // Update the frontend closing balance sections
         if (lowerTableType.includes('recurring') && !lowerTableType.includes('non')) {
             // Recurring closing balance
@@ -1034,16 +1089,16 @@ function populateTableData(tbody, dataList, tableType) {
                 console.log(`✓ Updated Non-Recurring Closing Balance Total in frontend: ${formattedClosingBalance}`);
             }
         }
-        
+
         // Also populate Component wise utilization table with the same expenditure value
         if (dataList.length > 0) {
             console.log(`Populating component table with expenditureHalf: ${expenditureHalf}`);
-            
+
             // Use different component table IDs for Recurring and Non-Recurring
-            const componentTableId = lowerTableType.includes('recurring') && !lowerTableType.includes('non') 
-                ? 'ucComponentTable' 
+            const componentTableId = lowerTableType.includes('recurring') && !lowerTableType.includes('non')
+                ? 'ucComponentTable'
                 : 'ucComponentNonRecurringTable';
-            
+
             const componentTable = document.getElementById(componentTableId);
             if (componentTable) {
                 const componentTbody = componentTable.querySelector('tbody');
@@ -1069,7 +1124,7 @@ function populateTableData(tbody, dataList, tableType) {
                 }
             }
         }
-        
+
         // Update GFR 12-B values after tables are populated
         if (lowerTableType.includes('recurring')) {
             setTimeout(() => {
@@ -1095,11 +1150,11 @@ function createTable(tableId, data, columns) {
         console.warn(`Table "${tableId}" missing thead or tbody`);
         return;
     }
-    
+
     console.log(`Creating table: ${tableId}`);
     console.log('  Received data length:', data ? data.length : 0);
     console.log('  Requested columns:', columns);
-    
+
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
@@ -1111,15 +1166,15 @@ function createTable(tableId, data, columns) {
 
     console.log('  First data row:', data[0]);
     console.log('  Available columns in data:', Object.keys(data[0]));
-    
+
     // Get columns - first try requested columns, then fallback to actual data columns
     let cols = columns;
-    
+
     if (cols && cols.length > 0) {
         // Verify that requested columns exist in the data
         const firstRow = data[0];
         const missingCols = cols.filter(col => !(col in firstRow));
-        
+
         if (missingCols.length > 0) {
             console.warn(`Requested columns not found in data for ${tableId}: ${missingCols}. Using auto-detected columns.`);
             cols = Object.keys(firstRow);
@@ -1127,9 +1182,9 @@ function createTable(tableId, data, columns) {
     } else {
         cols = Object.keys(data[0]);
     }
-    
+
     console.log('  Using columns:', cols);
-    
+
     // Create header
     const headerRow = document.createElement('tr');
     cols.forEach(col => {
@@ -1150,18 +1205,18 @@ function createTable(tableId, data, columns) {
         cols.forEach(col => {
             const td = document.createElement('td');
             let value = row[col];
-            
+
             // Check if numeric
-            const isNumeric = col.toLowerCase().includes('expenditure') || 
-                             col.toLowerCase().includes('balance') || 
-                             col.toLowerCase().includes('limit') ||
-                             col.toLowerCase().includes('total') ||
-                             col.toLowerCase().includes('spent');
-            
+            const isNumeric = col.toLowerCase().includes('expenditure') ||
+                col.toLowerCase().includes('balance') ||
+                col.toLowerCase().includes('limit') ||
+                col.toLowerCase().includes('total') ||
+                col.toLowerCase().includes('spent');
+
             if (isNumeric && value !== null && value !== undefined) {
                 td.textContent = formatCurrency(value);
                 td.className = 'number';
-                
+
                 // Add color for balance
                 if (col.toLowerCase().includes('balance')) {
                     const numValue = parseFloat(value);
@@ -1171,24 +1226,24 @@ function createTable(tableId, data, columns) {
             } else {
                 td.textContent = value || '-';
             }
-            
+
             tr.appendChild(td);
         });
-        
+
         // Add Remarks column cell
         const remarksTd = document.createElement('td');
         remarksTd.textContent = '';
         tr.appendChild(remarksTd);
-        
+
         // Add special styling for Grand Total row
         if (row['TG'] === 'Grand Total' || row[cols[0]] === 'Grand Total') {
             tr.classList.add('grand-total');
         }
-        
+
         tbody.appendChild(tr);
         rowCount++;
     });
-    
+
     console.log(`Table ${tableId} created successfully with ${rowCount} rows`);
 }
 
@@ -1196,19 +1251,19 @@ function createTable(tableId, data, columns) {
 function displayTHubTotalsTable(thubTotals, toDate) {
     const section = document.getElementById('thubTotalsSection');
     if (!section) return;
-    
+
     // Show the section
     section.style.display = 'block';
-    
+
     const table = document.getElementById('thubTotalsTable');
     if (!table) return;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
     if (!thead || !tbody) return;
-    
+
     thead.innerHTML = '';
     tbody.innerHTML = '';
-    
+
     // Create header row
     const headerRow = document.createElement('tr');
     const headers = [
@@ -1218,14 +1273,14 @@ function displayTHubTotalsTable(thubTotals, toDate) {
         { main: `Balance as on (${toDate || 'DD/MM/YYYY'})`, roman: '(VI = II - III)' },
         { main: 'Remarks', roman: '(if any)' }
     ];
-    
+
     headers.forEach(headerObj => {
         const th = document.createElement('th');
         th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
-    
+
     // Create Recurring row
     const recurringRow = document.createElement('tr');
     const recurringCells = [
@@ -1235,7 +1290,7 @@ function displayTHubTotalsTable(thubTotals, toDate) {
         thubTotals.balance || 0,
         ''
     ];
-    
+
     recurringCells.forEach((value, index) => {
         const td = document.createElement('td');
         if (index === 0 || index === 4) {
@@ -1247,12 +1302,12 @@ function displayTHubTotalsTable(thubTotals, toDate) {
         recurringRow.appendChild(td);
     });
     tbody.appendChild(recurringRow);
-    
+
     // Create Total row
     const totalRow = document.createElement('tr');
     totalRow.style.fontWeight = 'bold';
     totalRow.style.backgroundColor = '#e3f2fd';
-    
+
     const totalCells = [
         'Total',
         thubTotals.total_funds_released || 0,
@@ -1260,7 +1315,7 @@ function displayTHubTotalsTable(thubTotals, toDate) {
         thubTotals.balance || 0,
         ''
     ];
-    
+
     totalCells.forEach((value, index) => {
         const td = document.createElement('td');
         if (index === 0 || index === 4) {
@@ -1272,10 +1327,10 @@ function displayTHubTotalsTable(thubTotals, toDate) {
         totalRow.appendChild(td);
     });
     tbody.appendChild(totalRow);
-    
+
     window.thubTotalsData = thubTotals;
     window.thubTotalsToDate = toDate;
-    
+
     // Store in global variable for downloads
     allThubSummaryData = [{
         sheetName: 'T-Hub-Wise Expenditure Summary',
@@ -1302,12 +1357,12 @@ function displayTHubTotalsTable(thubTotals, toDate) {
 function downloadTHubTotalsTable(format = 'excel') {
     const totals = window.thubTotalsData;
     const toDate = window.thubTotalsToDate || 'DD/MM/YYYY';
-    
+
     if (!totals) {
         showAlert('No T-Hub totals data available to download', 'error');
         return;
     }
-    
+
     if (format === 'excel') {
         downloadTHubTotalsExcel(totals, toDate);
     } else if (format === 'pdf') {
@@ -1323,7 +1378,7 @@ function downloadTHubTotalsExcel(totals, toDate) {
     const csv = `Sanctioned Head (I),Total Funds Released (II),Total Expenditure (III),Balance as on (${toDate}) (VI = II - III)
 Recurring,${totals.total_funds_released},${totals.total_expenditure},${totals.balance}
 Total,${totals.total_funds_released},${totals.total_expenditure},${totals.balance}`;
-    
+
     // Create Excel file using CSV
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -1334,7 +1389,7 @@ Total,${totals.total_funds_released},${totals.total_expenditure},${totals.balanc
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showAlert('T-Hub totals downloaded successfully as Excel!', 'success');
 }
 
@@ -1343,7 +1398,7 @@ function downloadTHubTotalsCSV(totals, toDate) {
     const csv = `Sanctioned Head (I),Total Funds Released (II),Total Expenditure (III),Balance as on (${toDate}) (VI = II - III)
 Recurring,${totals.total_funds_released},${totals.total_expenditure},${totals.balance}
 Total,${totals.total_funds_released},${totals.total_expenditure},${totals.balance}`;
-    
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -1353,7 +1408,7 @@ Total,${totals.total_funds_released},${totals.total_expenditure},${totals.balanc
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showAlert('T-Hub totals downloaded successfully as CSV!', 'success');
 }
 
@@ -1431,7 +1486,7 @@ function downloadTHubTotalsPDF(totals, toDate) {
 </div>
 </body>
 </html>`;
-    
+
     const newWindow = window.open('', 'Print-Window');
     newWindow.document.open();
     newWindow.document.write(docContent);
@@ -1439,7 +1494,7 @@ function downloadTHubTotalsPDF(totals, toDate) {
     setTimeout(() => {
         newWindow.print();
     }, 500);
-    
+
     showAlert('T-Hub Totals PDF prepared for printing. Use print dialog to save as PDF.', 'success');
 }
 
@@ -1517,13 +1572,13 @@ function downloadTHubTotalsWord(totals, toDate) {
 </div>
 </body>
 </html>`;
-    
+
     try {
         const docHeader = `<html xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><style>${getProStyleSheet()}</style></head><body>`;
         const docFooter = `</body></html>`;
-        
+
         const fullDoc = docHeader + docContent.substring(docContent.indexOf('<div class="page">'), docContent.indexOf('</div>\n</body>') + 6) + docFooter;
-        
+
         const blob = new Blob([fullDoc], { type: 'application/msword' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -1531,7 +1586,7 @@ function downloadTHubTotalsWord(totals, toDate) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         showAlert('T-Hub Totals Word document downloaded', 'success');
     } catch (err) {
         console.error('Error generating Word document:', err);
@@ -1555,17 +1610,17 @@ async function downloadTGPDF(data, toDate) {
                 to_date: toDate
             })
         });
-        
+
         if (!response.ok) {
             throw new Error('Failed to generate PDF');
         }
-        
+
         // Get the PDF blob
         const blob = await response.blob();
-        
+
         // Create a temporary URL for the blob
         const url = window.URL.createObjectURL(blob);
-        
+
         // Create a temporary anchor element and click it
         const link = document.createElement('a');
         link.href = url;
@@ -1573,10 +1628,10 @@ async function downloadTGPDF(data, toDate) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         // Clean up the URL
         window.URL.revokeObjectURL(url);
-        
+
         showAlert(`${data.TG} PDF downloaded successfully!`, 'success');
     } catch (error) {
         console.error('Error downloading PDF:', error);
@@ -1739,11 +1794,11 @@ function downloadTGDetailedTable(tgName, tableData, toDate) {
         showAlert('No data available to download', 'error');
         return;
     }
-    
+
     const headers = ['Sanctioned Head', 'Total Funds Released', 'Total Expenditure', 'Balance as on (DD/MM/YYYY)', 'Remarks (if any)'];
-    
+
     let csv = headers.join(',') + '\n';
-    
+
     tableData.forEach(row => {
         const values = [
             row.sanctioned_head || '',
@@ -1754,7 +1809,7 @@ function downloadTGDetailedTable(tgName, tableData, toDate) {
         ];
         csv += values.join(',') + '\n';
     });
-    
+
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -1764,7 +1819,7 @@ function downloadTGDetailedTable(tgName, tableData, toDate) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     showAlert(`${tgName} detailed table downloaded successfully!`, 'success');
 }
 
@@ -1774,7 +1829,7 @@ function downloadAllTGTables() {
     const allTabButtons = document.querySelectorAll('.tab-btn');
     let isNonRecurringActive = false;
     let isUCTab = false;
-    
+
     // Find the active tab button and check if it's the Non-Recurring tab or UC tab
     allTabButtons.forEach(btn => {
         if (btn.classList.contains('active')) {
@@ -1792,7 +1847,7 @@ function downloadAllTGTables() {
             }
         }
     });
-    
+
     if (isUCTab) {
         // Download UC data based on whether Non-Recurring is active
         if (isNonRecurringActive) {
@@ -1848,7 +1903,7 @@ function showFormatSelectionDialog(tableType = 'tg') {
         justify-content: center;
         z-index: 2000;
     `;
-    
+
     const modalContent = document.createElement('div');
     modalContent.style.cssText = `
         background: white;
@@ -1858,12 +1913,12 @@ function showFormatSelectionDialog(tableType = 'tg') {
         max-width: 400px;
         text-align: center;
     `;
-    
+
     const title = document.createElement('h3');
     title.textContent = 'Select Download Format';
     title.style.marginBottom = '20px';
     title.style.color = '#212529';
-    
+
     const description = document.createElement('p');
     let descText = 'Choose the format you want to download the ';
     if (tableType === 'thub') {
@@ -1883,13 +1938,13 @@ function showFormatSelectionDialog(tableType = 'tg') {
     description.textContent = descText;
     description.style.marginBottom = '20px';
     description.style.color = '#495057';
-    
+
     const buttonContainer = document.createElement('div');
     buttonContainer.style.display = 'flex';
     buttonContainer.style.gap = '10px';
     buttonContainer.style.flexDirection = 'column';
-    
-    // For UC downloads only allow Word; otherwise allow all formats
+
+    // For UC downloads allow PDF and Word; otherwise allow all formats
     let formats = [
         { name: 'Excel', icon: '📊', action: 'excel' },
         { name: 'PDF', icon: '📄', action: 'pdf' },
@@ -1897,10 +1952,11 @@ function showFormatSelectionDialog(tableType = 'tg') {
     ];
     if (tableType === 'uc-recurring' || tableType === 'uc-nonrecurring') {
         formats = [
+            { name: 'PDF', icon: '📄', action: 'pdf' },
             { name: 'Word', icon: '📃', action: 'word' }
         ];
     }
-    
+
     formats.forEach(format => {
         const btn = document.createElement('button');
         btn.textContent = `${format.icon} Download as ${format.name}`;
@@ -1925,17 +1981,17 @@ function showFormatSelectionDialog(tableType = 'tg') {
             } else if (tableType === 'tg-nonrecurring') {
                 downloadTGNonRecurringInFormat(format.action);
             } else if (tableType === 'uc-recurring') {
-                // UC downloads: generate client-side Word only
-                if (format.action === 'word') {
+                // UC downloads: generate client-side PDF or Word
+                if (format.action === 'word' || format.action === 'pdf') {
                     await generateUCDocument('recurring', format.action);
                 } else {
-                    showAlert('UC documents are available only in Word format', 'error');
+                    showAlert('UC documents are available in PDF and Word formats', 'error');
                 }
             } else if (tableType === 'uc-nonrecurring') {
-                if (format.action === 'word') {
+                if (format.action === 'word' || format.action === 'pdf') {
                     await generateUCDocument('nonrecurring', format.action);
                 } else {
-                    showAlert('UC documents are available only in Word format', 'error');
+                    showAlert('UC documents are available in PDF and Word formats', 'error');
                 }
             } else {
                 downloadTGTablesInFormat(format.action);
@@ -1944,7 +2000,7 @@ function showFormatSelectionDialog(tableType = 'tg') {
         };
         buttonContainer.appendChild(btn);
     });
-    
+
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancel';
     cancelBtn.style.cssText = `
@@ -1963,7 +2019,7 @@ function showFormatSelectionDialog(tableType = 'tg') {
     cancelBtn.onmouseout = () => cancelBtn.style.background = '#6c757d';
     cancelBtn.onclick = () => modal.remove();
     buttonContainer.appendChild(cancelBtn);
-    
+
     modalContent.appendChild(title);
     modalContent.appendChild(description);
     modalContent.appendChild(buttonContainer);
@@ -1988,7 +2044,7 @@ function showAllDocumentsFormatSelectionDialog() {
         justify-content: center;
         z-index: 2000;
     `;
-    
+
     const modalContent = document.createElement('div');
     modalContent.style.cssText = `
         background: white;
@@ -1998,28 +2054,28 @@ function showAllDocumentsFormatSelectionDialog() {
         max-width: 400px;
         text-align: center;
     `;
-    
+
     const title = document.createElement('h3');
     title.textContent = 'Select Download Format';
     title.style.marginBottom = '20px';
     title.style.color = '#212529';
-    
+
     const description = document.createElement('p');
     description.textContent = 'Choose the format to download all document tables:';
     description.style.marginBottom = '20px';
     description.style.color = '#495057';
-    
+
     const buttonContainer = document.createElement('div');
     buttonContainer.style.display = 'flex';
     buttonContainer.style.gap = '10px';
     buttonContainer.style.flexDirection = 'column';
-    
+
     const formats = [
         { name: 'Excel', icon: '📊', action: 'excel' },
         { name: 'PDF', icon: '📄', action: 'pdf' },
         { name: 'Word', icon: '📃', action: 'word' }
     ];
-    
+
     formats.forEach(format => {
         const btn = document.createElement('button');
         btn.textContent = `${format.icon} Download as ${format.name}`;
@@ -2042,7 +2098,7 @@ function showAllDocumentsFormatSelectionDialog() {
         };
         buttonContainer.appendChild(btn);
     });
-    
+
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancel';
     cancelBtn.style.cssText = `
@@ -2061,7 +2117,7 @@ function showAllDocumentsFormatSelectionDialog() {
     cancelBtn.onmouseout = () => cancelBtn.style.background = '#6c757d';
     cancelBtn.onclick = () => modal.remove();
     buttonContainer.appendChild(cancelBtn);
-    
+
     modalContent.appendChild(title);
     modalContent.appendChild(description);
     modalContent.appendChild(buttonContainer);
@@ -2075,34 +2131,34 @@ async function downloadAllDocuments(format) {
         // Prepare the data from the document view tables
         const thubTgsData = window.thubTgsComparisonData || {};
         const thubTotalsData = window.thubTotalsData || {};
-        
+
         // Debug logging
         console.log('DEBUG: Full window object check for thubTgsComparisonData:', window.thubTgsComparisonData);
         console.log('DEBUG: thubTgsData:', thubTgsData);
         console.log('DEBUG: thubTotalsData:', thubTotalsData);
-        
+
         // If thubTgsData is empty, try to get from the displayed table
         if (!thubTgsData || Object.keys(thubTgsData).length === 0) {
             console.log('WARNING: thubTgsComparisonData is empty! Trying to extract from frontend table...');
         }
-        
+
         // Collect TG details from the displayed tables
         const tgDetailsData = [];
         const tgSections = document.querySelectorAll('#tgDetailedTablesContainer > div');
-        
+
         tgSections.forEach((section, index) => {
             const title = section.querySelector('.tg-detailed-header span')?.textContent || `TG ${index + 1}`;
             const table = section.querySelector('table');
-            
+
             if (table) {
                 const columns = [];
                 const rows = [];
-                
+
                 // Extract headers
                 table.querySelectorAll('thead th').forEach(th => {
                     columns.push(th.textContent);
                 });
-                
+
                 // Extract rows
                 table.querySelectorAll('tbody tr').forEach(tr => {
                     const row = [];
@@ -2111,7 +2167,7 @@ async function downloadAllDocuments(format) {
                     });
                     if (row.length > 0) rows.push(row);
                 });
-                
+
                 if (columns.length > 0 && rows.length > 0) {
                     tgDetailsData.push({
                         title: title,
@@ -2121,14 +2177,14 @@ async function downloadAllDocuments(format) {
                 }
             }
         });
-        
+
         const payload = {
             format: format,
             thubTgs: thubTgsData,
             thubTotals: thubTotalsData,
             tgDetails: tgDetailsData
         };
-        
+
         const response = await fetch('/download-all-documents', {
             method: 'POST',
             headers: {
@@ -2136,12 +2192,12 @@ async function downloadAllDocuments(format) {
             },
             body: JSON.stringify(payload)
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
             throw new Error(error.error || 'Download failed');
         }
-        
+
         // Download the file
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -2152,7 +2208,7 @@ async function downloadAllDocuments(format) {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         showAlert('File downloaded successfully!', 'success');
     } catch (error) {
         console.error('Error downloading all documents:', error);
@@ -2176,7 +2232,7 @@ function showTHubTotalsFormatDialog() {
         justify-content: center;
         z-index: 2000;
     `;
-    
+
     const modalContent = document.createElement('div');
     modalContent.style.cssText = `
         background: white;
@@ -2186,28 +2242,28 @@ function showTHubTotalsFormatDialog() {
         max-width: 400px;
         text-align: center;
     `;
-    
+
     const title = document.createElement('h3');
     title.textContent = 'Select Download Format';
     title.style.marginBottom = '20px';
     title.style.color = '#212529';
-    
+
     const description = document.createElement('p');
     description.textContent = 'Choose the format you want to download the T-Hub Expenditure Totals:';
     description.style.marginBottom = '20px';
     description.style.color = '#495057';
-    
+
     const buttonContainer = document.createElement('div');
     buttonContainer.style.display = 'flex';
     buttonContainer.style.gap = '10px';
     buttonContainer.style.flexDirection = 'column';
-    
+
     const formats = [
         { name: 'Excel', icon: '📊', action: 'excel' },
         { name: 'PDF', icon: '📄', action: 'pdf' },
         { name: 'Word', icon: '📃', action: 'word' }
     ];
-    
+
     formats.forEach(format => {
         const btn = document.createElement('button');
         btn.textContent = `${format.icon} Download as ${format.name}`;
@@ -2230,7 +2286,7 @@ function showTHubTotalsFormatDialog() {
         };
         buttonContainer.appendChild(btn);
     });
-    
+
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancel';
     cancelBtn.style.cssText = `
@@ -2249,7 +2305,7 @@ function showTHubTotalsFormatDialog() {
     cancelBtn.onmouseout = () => cancelBtn.style.background = '#6c757d';
     cancelBtn.onclick = () => modal.remove();
     buttonContainer.appendChild(cancelBtn);
-    
+
     modalContent.appendChild(title);
     modalContent.appendChild(description);
     modalContent.appendChild(buttonContainer);
@@ -2263,7 +2319,7 @@ function downloadTGTablesInFormat(format) {
         showAlert('No TG data available to download', 'error');
         return;
     }
-    
+
     // Send request to backend with format
     fetch('/download-tg-tables', {
         method: 'POST',
@@ -2275,30 +2331,30 @@ function downloadTGTablesInFormat(format) {
             data: allTGDetailedData
         })
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Download failed');
-        return response.blob();
-    })
-    .then(blob => {
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Set filename based on format
-        const filename = `All_TG_Detailed_Tables.${getFileExtension(format)}`;
-        link.download = filename;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showAlert(`TG tables downloaded successfully as ${format.toUpperCase()}!`, 'success');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error downloading file. Please try again.', 'error');
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('Download failed');
+            return response.blob();
+        })
+        .then(blob => {
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Set filename based on format
+            const filename = `All_TG_Detailed_Tables.${getFileExtension(format)}`;
+            link.download = filename;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showAlert(`TG tables downloaded successfully as ${format.toUpperCase()}!`, 'success');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error downloading file. Please try again.', 'error');
+        });
 }
 
 // Get file extension based on format
@@ -2317,14 +2373,14 @@ function downloadTGRecurringInFormat(format) {
         showAlert('No TG Recurring data available to download', 'error');
         return;
     }
-    
+
     // Prepare all table data to send
     const downloadData = {
         comparisonTable: allComparisonTableData,
         thubSummaryTable: allThubSummaryData,
         tgDetailedTables: allTGDetailedData
     };
-    
+
     // Send request to backend with format
     fetch('/download-tg-tables', {
         method: 'POST',
@@ -2337,30 +2393,30 @@ function downloadTGRecurringInFormat(format) {
             sheetType: 'recurring'
         })
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Download failed');
-        return response.blob();
-    })
-    .then(blob => {
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Set filename based on format
-        const filename = `TG-Wise_Exp_Recurring.${getFileExtension(format)}`;
-        link.download = filename;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showAlert(`TG-Wise Exp Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error downloading file. Please try again.', 'error');
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('Download failed');
+            return response.blob();
+        })
+        .then(blob => {
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Set filename based on format
+            const filename = `TG-Wise_Exp_Recurring.${getFileExtension(format)}`;
+            link.download = filename;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showAlert(`TG-Wise Exp Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error downloading file. Please try again.', 'error');
+        });
 }
 
 // Download TG-Wise Exp Non-Recurring in specific format
@@ -2369,14 +2425,14 @@ function downloadTGNonRecurringInFormat(format) {
         showAlert('No TG Non-Recurring data available to download', 'error');
         return;
     }
-    
+
     // Prepare all table data to send
     const downloadData = {
         comparisonTable: allComparisonTableDataNonRecurring,
         thubSummaryTable: allThubSummaryDataNonRecurring,
         tgDetailedTables: allTGDetailedDataNonRecurring
     };
-    
+
     // Send request to backend with format
     fetch('/download-tg-tables', {
         method: 'POST',
@@ -2389,30 +2445,30 @@ function downloadTGNonRecurringInFormat(format) {
             sheetType: 'nonrecurring'
         })
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Download failed');
-        return response.blob();
-    })
-    .then(blob => {
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Set filename based on format
-        const filename = `TG-Wise_Exp_Non-Recurring.${getFileExtension(format)}`;
-        link.download = filename;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showAlert(`TG-Wise Exp Non-Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error downloading file. Please try again.', 'error');
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('Download failed');
+            return response.blob();
+        })
+        .then(blob => {
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Set filename based on format
+            const filename = `TG-Wise_Exp_Non-Recurring.${getFileExtension(format)}`;
+            link.download = filename;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showAlert(`TG-Wise Exp Non-Recurring sheet downloaded successfully as ${format.toUpperCase()}!`, 'success');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error downloading file. Please try again.', 'error');
+        });
 }
 
 // Download UC Recurring data in specified format
@@ -2521,7 +2577,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     try {
         const toDate = toDateValue.textContent || 'dd-mm-yyyy';
         const schemeName = 'National Quantum Mission (4262)';
-        const grantTypeText = (type === 'recurring') ? 'Recurring' : 'Non-Recurring';
+        const grantTypeText = (type === 'recurring') ? 'Recurring/<s style="text-decoration: line-through;">Non-Recurring</s>' : '<s style="text-decoration: line-through;">Recurring</s>/Non-Recurring';
         const financialYearText = (financialYearValue && financialYearValue.textContent)
             ? financialYearValue.textContent
             : '2025-26';
@@ -2537,22 +2593,22 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
             ? 'Grant-in-aid - Total General'
             : 'Grant-in-aid - Creation of capital assets';
         const isNonRecurring = type === 'nonrecurring';
-        
+
         // Get window data as backup (in case table extraction fails)
         const thubTgsData = isNonRecurring ? window.thubTgsComparisonDataNonRecurring : window.thubTgsComparisonData;
         const totalFundsReleased = thubTgsData?.totalFundsReleased || 0;
         const totalExpenditure = thubTgsData?.totalExpenditure || 0;
-        
+
         // Select the UC Exp Recurring table specifically
         let ucTable = null;
         let componentTable = null;
         if (type === 'recurring') {
             // Find the UC Exp Recurring table by looking for the table in the UC recurring tab/section
             // Search for table with id containing "ucRecurring" or look for the visible UC table
-            ucTable = document.getElementById('ucRecurringTable') || 
-                      document.querySelector('#ucRecurringTab table.uc-template-table') ||
-                      document.querySelector('div#ucRecurring table.uc-template-table:first-of-type') ||
-                      document.querySelector('table.uc-template-table:not(#ucNonRecurringTable):not(.se-template-table)');
+            ucTable = document.getElementById('ucRecurringTable') ||
+                document.querySelector('#ucRecurringTab table.uc-template-table') ||
+                document.querySelector('div#ucRecurring table.uc-template-table:first-of-type') ||
+                document.querySelector('table.uc-template-table:not(#ucNonRecurringTable):not(.se-template-table)');
             componentTable = document.getElementById('ucComponentTable');
         } else {
             ucTable = document.getElementById('ucNonRecurringTable');
@@ -2562,12 +2618,12 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         // Extract actual expenditure and closing balance from the UC table footer row
         let expenditureFromTable = 0;
         let closingBalanceFromTable = 0;
-        
+
         if (ucTable) {
             const tableId = ucTable.id || 'no-id';
             const tableClass = ucTable.className;
             console.log(`✓ UC Table selected: ID="${tableId}", Class="${tableClass}"`);
-            
+
             // Get the data rows from tbody
             const tbody = ucTable.querySelector('tbody');
             if (tbody) {
@@ -2578,12 +2634,12 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
                     const dataRow = rows[0];
                     const cells = dataRow.querySelectorAll('td');
                     console.log(`UC Table: First row has ${cells.length} cells`);
-                    
+
                     // Log all cell values to identify correct columns
                     cells.forEach((cell, index) => {
                         console.log(`UC Table Cell ${index}: ${cell.textContent.trim()}`);
                     });
-                    
+
                     // Column indices: 7=Expenditure incurred, 8=Closing Balances (5-6)
                     if (cells[7]) { // Expenditure incurred column
                         const expText = cells[7].textContent.trim().replace(/,/g, '');
@@ -2604,11 +2660,11 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         // Use extracted table values; fall back to window data if not found
         const finalExpenditure = expenditureFromTable > 0 ? expenditureFromTable : (parseFloat(totalExpenditure) || 0);
         const finalClosingBalance = closingBalanceFromTable > 0 ? closingBalanceFromTable : Math.abs((parseFloat(totalFundsReleased) || 0) - (parseFloat(totalExpenditure) || 0));
-        
+
         // For UC document, utilized amount is the full expenditure (not half), closing balance is as shown in table
         const expenditureHalf = finalExpenditure;
         const closingBalance = finalClosingBalance;
-        
+
         console.log('=== UC DOCUMENT DEBUG ===');
         console.log(`Window Data Type: ${type === 'recurring' ? 'RECURRING' : 'NON-RECURRING'}`);
         console.log(`Expenditure from Table: ${expenditureFromTable}`);
@@ -2618,15 +2674,17 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         console.log(`Formatted Expenditure: ${formatCurrency(expenditureHalf)}`);
         console.log(`Formatted Closing Balance: ${formatCurrency(closingBalance)}`);
         console.log('========================');
-        
-        const tableFontPt = '7pt'; // Smaller font to fit all columns within page width
-        const tablePaddingPt = '0.5%'; // Balanced padding to avoid overflow
-        const bodyPaddingMm = '5mm'; // Add body padding for better spacing
-        const pagePaddingMm = '5mm'; // Add page padding for margins
-        const pageMarginMm = '5mm'; // Add proper page margins
+
+        const tableFontPt = '7pt'; // Keep smaller font to fit within page width
+        const tablePaddingPt = '0.3%'; // Reduced padding to fit page width
+        const bodyPaddingMm = '1mm'; // Reduced body padding for A4 sheet
+        const pagePaddingMm = '10mm'; // Top margin for page
+        const pageMarginMm = '8mm'; // Top and bottom margins for A4 sheet
+        const pageMarginLeftRightMm = '20mm'; // Left and right margins for A4 sheet
         const headerHeightPx = isNonRecurring ? '100px' : '100px';
+        const pagePaddingLeftRightMm = '10mm'; // Left and right padding for content inside page
         const tableFontPx = '7px'; // Smaller font size to fit A4 properly
-        const tableMarginMm = '1mm'; // Smaller table margin to keep full width inside page
+        const tableMarginMm = '0.5mm'; // Minimal table margin to keep full width inside page
         const tableLayoutMode = 'fixed'; // Use fixed layout to keep columns within page width
 
         // Clone and clean the tables to embed properly
@@ -2639,15 +2697,15 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
             }
             const ucColgroup = document.createElement('colgroup');
             const ucColWidths = [
-                '11.11%',
-                '11.11%',
-                '11.11%',
-                '11.11%',
-                '11.11%',
-                '11.11%',
-                '11.11%',
-                '11.11%',
-                '11.11%'
+                '11%',
+                '11%',
+                '11%',
+                '11%',
+                '11%',      // Date (ii) column
+                '11%',
+                '11%',       // Total Available funds (1+2-3+4) - increased width for proper wrapping
+                '11%',
+                '11%'
             ];
             ucColWidths.forEach(width => {
                 const col = document.createElement('col');
@@ -2660,39 +2718,137 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
             clonedTable.style.borderCollapse = 'collapse';
             clonedTable.style.width = '100%';
             clonedTable.style.tableLayout = 'fixed';
-            clonedTable.style.marginTop = '6pt';
-            clonedTable.style.marginBottom = '6pt';
+            clonedTable.style.marginTop = '2pt';
+            clonedTable.style.marginBottom = '2pt';
             clonedTable.style.marginLeft = '0';
             clonedTable.style.marginRight = '0';
             clonedTable.style.border = '1pt solid #000000';
             clonedTable.style.fontSize = tableFontPt;
             clonedTable.style.maxWidth = '100%';
             clonedTable.style.fontFamily = "'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif";
-            
+
             // Style all cells
-            clonedTable.querySelectorAll('th, td').forEach(cell => {
-                cell.style.border = '1pt solid #000000';
+            const tbody = clonedTable.querySelector('tbody');
+            const allRows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+            const lastRowIndex = allRows.length - 1;
+
+            clonedTable.querySelectorAll('th, td').forEach((cell, index) => {
+                // Get column index (relative to parent row)
+                const cellIndex = Array.from(cell.parentElement.children).indexOf(cell);
+                const rowElement = cell.parentElement;
+                const rowIndex = Array.from(rowElement.parentElement.children).indexOf(rowElement);
+                const isHeaderRow = cell.parentElement.parentElement.tagName === 'THEAD' || cell.tagName === 'TH';
+                const isCellEmpty = cell.textContent.trim() === '';
+                const isLastRow = rowIndex === lastRowIndex;
+
+                // Set all borders for all cells
+
+
+                // For empty cells in non-header rows, remove top border by removing all then adding back 3 sides
+                if (!isHeaderRow && isCellEmpty) {
+                    cell.style.border = 'none';
+                    cell.style.borderLeft = '1pt solid #000000';
+                    cell.style.borderRight = '1pt solid #000000';
+                } else {
+                    cell.style.border = '1pt solid #000000';
+                }
+
+                if (!isHeaderRow && cellIndex === 0 && rowIndex === 0) {
+                    cell.style.border = 'none';
+                    cell.style.borderLeft = '1pt solid #000000';
+                    cell.style.borderRight = '1pt solid #000000';
+                }
+                if (!isHeaderRow && cellIndex === 1 && rowIndex === 0) {
+                    cell.style.border = 'none';
+                    cell.style.borderLeft = '1pt solid #000000';
+                    cell.style.borderRight = '1pt solid #000000';
+                }
+                if (!isHeaderRow && cellIndex === 2 && rowIndex === 0) {
+                    cell.style.border = 'none';
+                    cell.style.borderLeft = '1pt solid #000000';
+                    cell.style.borderRight = '1pt solid #000000';
+                }
+                if (!isHeaderRow && cellIndex === 6 && rowIndex === 0) {
+                    cell.style.border = 'none';
+                    cell.style.borderLeft = '1pt solid #000000';
+                    cell.style.borderRight = '1pt solid #000000';
+                }
+                if (!isHeaderRow && cellIndex === 7 && rowIndex === 0) {
+                    cell.style.border = 'none';
+                    cell.style.borderLeft = '1pt solid #000000';
+                    cell.style.borderRight = '1pt solid #000000';
+                }
+                if (!isHeaderRow && cellIndex === 8 && rowIndex === 0) {
+                    cell.style.border = 'none';
+                    cell.style.borderLeft = '1pt solid #000000';
+                    cell.style.borderRight = '1pt solid #000000';
+                }
+
+                // Remove bottom border from last row
+                if (!isHeaderRow && isLastRow) {
+                    cell.style.borderBottom = '1pt solid #000000';
+                }
+
                 cell.style.padding = tablePaddingPt;
                 cell.style.textAlign = 'center';
                 cell.style.verticalAlign = 'top';
                 cell.style.fontFamily = "'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif";
                 cell.style.fontSize = tableFontPt;
-                cell.style.wordBreak = 'break-word';
-                cell.style.overflowWrap = 'anywhere';
-                cell.style.whiteSpace = 'normal';
-                if (cell.tagName === 'TH') {
-                    cell.style.backgroundColor = '#f3f3f3';
-                    cell.style.fontWeight = 'bold';
-                    cell.style.lineHeight = '1.1';
-                    cell.style.verticalAlign = 'middle';
+
+                // Apply bottom vertical align to specific first-row cells AFTER setting top
+                if (!isHeaderRow && rowIndex === 0 && (cellIndex === 0 || cellIndex === 1 || cellIndex === 2 || cellIndex === 6 || cellIndex === 7 || cellIndex === 8)) {
+                    cell.style.verticalAlign = 'bottom';
+                }
+
+                // Column 6: Total Available funds (1+2-3+4) - reduce width and add word break
+                if (cellIndex === 6) {
+                    cell.style.width = '8%';
+                    cell.style.minWidth = '45px';
+                    cell.style.wordBreak = 'break-word';
+                    cell.style.whiteSpace = 'normal';
+                    cell.style.overflowWrap = 'break-word';
+                    cell.style.padding = '4px 2px';
+                    cell.style.verticalAlign = 'bottom';
+                    if (cell.tagName === 'TH') {
+                        cell.style.fontSize = '7pt';
+                        cell.style.verticalAlign = 'middle';
+                        cell.style.lineHeight = '1.45';
+                        cell.style.height = 'auto';
+                        cell.style.minHeight = '55px';
+                        cell.style.backgroundColor = '#f3f3f3';
+                        cell.style.fontWeight = 'bold';
+                        cell.style.display = 'table-cell';
+                    }
+                }
+                // Date (ii) column - column index 4 - prevent wrapping
+                else if (cellIndex === 4) {
+                    cell.style.whiteSpace = 'nowrap';
+                    cell.style.wordBreak = 'normal';
+                    cell.style.overflowWrap = 'normal';
+                    if (cell.tagName === 'TH') {
+                        cell.style.backgroundColor = '#f3f3f3';
+                        cell.style.fontWeight = 'bold';
+                        cell.style.lineHeight = '1.1';
+                        cell.style.verticalAlign = 'middle';
+                    }
+                } else {
+                    cell.style.wordBreak = 'break-word';
+                    cell.style.overflowWrap = 'anywhere';
+                    cell.style.whiteSpace = 'normal';
+                    if (cell.tagName === 'TH') {
+                        cell.style.backgroundColor = '#f3f3f3';
+                        cell.style.fontWeight = 'bold';
+                        cell.style.lineHeight = '1.1';
+                        cell.style.verticalAlign = 'middle';
+                    }
                 }
             });
-            
+
             ucTableHTML = clonedTable.outerHTML;
         } else {
             ucTableHTML = '<p>No UC table data</p>';
         }
-        
+
         let componentTableHTML = '';
         if (componentTable) {
             const clonedComponentTable = componentTable.cloneNode(true);
@@ -2713,18 +2869,40 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
             clonedComponentTable.style.borderCollapse = 'collapse';
             clonedComponentTable.style.width = '100%';
             clonedComponentTable.style.tableLayout = 'fixed';
-            clonedComponentTable.style.marginTop = '6pt';
-            clonedComponentTable.style.marginBottom = '6pt';
+            clonedComponentTable.style.marginTop = '2pt';
+            clonedComponentTable.style.marginBottom = '2pt';
             clonedComponentTable.style.marginLeft = '0';
             clonedComponentTable.style.marginRight = '0';
             clonedComponentTable.style.border = '1pt solid #000000';
             clonedComponentTable.style.fontSize = tableFontPt;
             clonedComponentTable.style.maxWidth = '100%';
             clonedComponentTable.style.fontFamily = "'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif";
-            
+
             // Style all cells
+            const componentTbody = clonedComponentTable.querySelector('tbody');
+            const componentAllRows = componentTbody ? Array.from(componentTbody.querySelectorAll('tr')) : [];
+            const componentLastRowIndex = componentAllRows.length - 1;
+
             clonedComponentTable.querySelectorAll('th, td').forEach(cell => {
+                const rowElement = cell.parentElement;
+                const rowIndex = Array.from(rowElement.parentElement.children).indexOf(rowElement);
+                const isHeaderRow = cell.parentElement.parentElement.tagName === 'THEAD' || cell.tagName === 'TH';
+                const isCellEmpty = cell.textContent.trim() === '';
+                const isLastRow = rowIndex === componentLastRowIndex;
+
+                // Set all borders for all cells
                 cell.style.border = '1pt solid #000000';
+
+                // For empty cells in non-header rows, remove top border by removing all then adding back 3 sides
+                if (!isHeaderRow && isCellEmpty) {
+                    cell.style.border = 'none';
+                    cell.style.borderBottom = '1pt solid #000000';
+                    cell.style.borderLeft = '1pt solid #000000';
+                    cell.style.borderRight = '1pt solid #000000';
+                }
+
+
+
                 cell.style.padding = tablePaddingPt;
                 cell.style.textAlign = 'justify';
                 cell.style.verticalAlign = 'top';
@@ -2738,7 +2916,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
                     cell.style.fontWeight = 'bold';
                 }
             });
-            
+
             componentTableHTML = clonedComponentTable.outerHTML;
         } else {
             componentTableHTML = '<p>No component data</p>';
@@ -2748,7 +2926,7 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         const ucData = (type === 'recurring') ? allUCDetailedData : allUCDetailedDataNonRecurring;
         let dataColumnHTML = '<table style="width: 100%; border-collapse: collapse; margin: 10px 0;"><tr>';
         let dataRows = '';
-        
+
         if (ucData && ucData.length > 0) {
             ucData.forEach((data, index) => {
                 if (index > 0 && index % 2 === 0) {
@@ -2765,24 +2943,28 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         // Build page 3 paragraph with all UC data in format: "Rs amount1 dated date1 and amount2 dated date2..."
         let page3GrantText = '';
         if (ucData && ucData.length > 0) {
-            const amountsAndDates = ucData.map(data => 
+            const amountsAndDates = ucData.map(data =>
                 `Rs ${formatCurrency(data.amount)} dated ${data.date}`
             ).join(' and ');
-            
-            const organizations = ucData.map(data => 
+
+            const organizations = ucData.map(data =>
                 data.sanction_number || ''
             ).filter(org => org).join(' and ');
-            
+
             page3GrantText = `${amountsAndDates} SANCTIONED in favour of ${organizations}`;
         } else {
             page3GrantText = 'Grant-in-aid of Rs. ____________________ dated __________ SANCTIONED in favour of ____________________ during the year';
         }
 
         // Build professional document HTML matching the GFR templates (header, ribbon, emblem, footer)
+        const titleGrantLine = (type === 'recurring')
+            ? 'GRANTS-IN-AID/SALARIES/<s>CREATION OF CAPITAL ASSETS</s>'
+            : '<s>GRANTS-IN-AID/SALARIES</s>/CREATION OF CAPITAL ASSETS';
+
         const pageOne = `
-<div class="page-container">
-    <div style="text-align: center; margin-bottom: 6px; overflow: hidden;">
-        <img src="${headerSrc}" style="max-width: 74%; display: block; margin: 0 auto; height: 37%;" alt="Header"/>
+<div class="page-container page-one">
+    <div style="text-align: center; margin-bottom: 10px;">
+        <img src="${headerSrc}" style="width: 100%; height: auto; display: block;" alt="Header"/>
     </div>
     <h1 class="uc-main-title">${gfrTitle}</h1>
     <h2 class="uc-sub-title">[See Rule 238 (1)]</h2>
@@ -2791,8 +2973,8 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     </div>
     <div class="uc-title-block">
         <p class="uc-year-line">
-            UTILIZATION CERTIFICATE FOR THE YEAR <u>${financialYearText} (till ${toDate})</u> in respect of ${grantTypeText}<br/>
-            GRANTS-IN-AID/SALARIES/CREATION OF CAPITAL ASSETS
+            UTILIZATION CERTIFICATE FOR THE YEAR ${financialYearText} (till ${toDate}) in respect of <br> ${grantTypeText}  <br/>
+            ${titleGrantLine}
         </p>
     </div>
 
@@ -2814,62 +2996,58 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     <div class="uc-section-title">Component wise utilization of grants:</div>
     ${componentTableHTML}
 
-    <div class="uc-end-section" style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">Details of grants position at the end of the year<br/>(i) Cash in Hand/Bank: Rs. ${formatCurrency(closingBalance)}<br/>(ii) Unadjusted Advances: Rs.<br/>(iii) Total: Rs. ${formatCurrency(closingBalance)}</div>
+    <div class="uc-end-section" style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; margin-bottom: 10px">Details of grants position at the end of the year<br/>(i) Cash in Hand/Bank: Rs. ${formatCurrency(closingBalance)}<br/>(ii) Unadjusted Advances: Rs.<br/>(iii) Total: Rs. ${formatCurrency(closingBalance)}</div>
 </div>
 `;
 
         const pageTwo = `
-<div class="page-container">
-    <div style="text-align: center; margin-bottom: 4px; max-width: 100%; overflow: hidden;">
-        <img src="${headerSrc2}" style="width: 100%; max-width: 100%; height: auto; display: block; margin: 0 auto; max-height: 80px;" alt="Header"/>
+<div class="page-container page-two" style="margin-top: 0;">
+    <div style="text-align: center; margin-bottom: 10px; page-break-before: always;">
+        <img src="${headerSrc2}" style="width: 100%; height: auto; display: block;" alt="Header"/>
     </div>
-    <p class="uc-paragraph" style="text-align: justify; margin: 2px 0; line-height: 1.25; font-size: 9pt; margin-top: 30px">Certified that I have satisfied myself that the conditions on which grants were sanctioned have been duly fulfilled / are being fulfilled and that I have exercised following checks to see that the money has been actually utilized for the purpose for which it was sanctioned:</p>
+    <p class="uc-paragraph" style="text-align: justify; margin: 2px 0; line-height: 1.25; font-size: 9pt; margin-top: 8px">Certified that I have satisfied myself that the conditions on which grants were sanctioned have been duly fulfilled / are being fulfilled and that I have exercised following checks to see that the money has been actually utilized for the purpose for which it was sanctioned:</p>
 
-    <ol class="uc-list" style="margin-top: 2px; margin-bottom: 2px;">
-        <li>The main accounts and other subsidiary accounts and registers (including assets registers) are maintained as prescribed in the relevant Act/Rules/Standing instructions and have been duly audited by designated auditors. The figures depicted above tally with the audited figures mentioned in financial statements/accounts.</li>
-        <li>There exist internal controls for safeguarding public funds/assets, watching outcomes and achievements of physical targets against the financial inputs, ensuring quality in asset creation etc. and the periodic evaluation of internal controls is exercised to ensure their effectiveness.</li>
-        <li>To the best of our knowledge and belief, no transactions have been entered that are in violation of relevant Act/Rules/standing instructions and scheme guidelines.</li>
-        <li>The responsibilities among the key functionaries for execution of the scheme have been assigned in clear terms and are not general in nature.</li>
-        <li>The benefits were extended to the intended beneficiaries and only such areas/districts were covered where the scheme was intended to operate.</li>
-        <li>The expenditure on various components of the scheme was in the proportions authorized as per the scheme guidelines and terms and conditions of the grants-in-aid.</li>
-        <li>It has been ensured that the physical and financial performance under the scheme has been achieved according to the requirements, as prescribed in the guidelines issued by the Government of India and the performance/targets achieved till the end of the year to which the utilization of the fund related is compared with Annexure - I duly enclosed.</li>
-        <li>The utilization of the fund resulted in outcomes in the Annexure - I duly enclosed (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</li>
-        <li>Details of various schemes executed by the agency through grants-in-aid received from the same Ministry/Department or from other Ministries is enclosed at Annexure - II (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</li>
+    <ol class="uc-list" style="margin-top: 8px; margin-bottom: 8px; margin-left: 30px; padding-left: 0px;">
+        <li style="margin-bottom: 8px; line-height: 1.6;">The main accounts and other subsidiary accounts and registers (including assets registers) are maintained as prescribed in the relevant Act/Rules/Standing instructions and have been duly audited by designated auditors. The figures depicted above tally with the audited figures mentioned in financial statements/accounts.</li>
+        <li style="margin-bottom: 8px; line-height: 1.6;">There exist internal controls for safeguarding public funds/assets, watching outcomes and achievements of physical targets against the financial inputs, ensuring quality in asset creation etc. and the periodic evaluation of internal controls is exercised to ensure their effectiveness.</li>
+        <li style="margin-bottom: 8px; line-height: 1.6;">To the best of our knowledge and belief, no transactions have been entered that are in violation of relevant Act/Rules/standing instructions and scheme guidelines.</li>
+        <li style="margin-bottom: 8px; line-height: 1.6;">The responsibilities among the key functionaries for execution of the scheme have been assigned in clear terms and are not general in nature.</li>
+        <li style="margin-bottom: 8px; line-height: 1.6;">The benefits were extended to the intended beneficiaries and only such areas/districts were covered where the scheme was intended to operate.</li>
+        <li style="margin-bottom: 8px; line-height: 1.6;">The expenditure on various components of the scheme was in the proportions authorized as per the scheme guidelines and terms and conditions of the grants-in-aid.</li>
+        <li style="margin-bottom: 8px; line-height: 1.6;">It has been ensured that the physical and financial performance under the scheme has been achieved according to the requirements, as prescribed in the guidelines issued by the Government of India and the performance/targets achieved till the end of the year to which the utilization of the fund related is compared with Annexure - I duly enclosed.</li>
+        <li style="margin-bottom: 8px; line-height: 1.6;">The utilization of the fund resulted in outcomes in the Annexure - I duly enclosed (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</li>
+        <li style="margin-bottom: 8px; line-height: 1.6;">Details of various schemes executed by the agency through grants-in-aid received from the same Ministry/Department or from other Ministries is enclosed at Annexure - II (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</li>
     </ol>
 
-    <table class="uc-sign-table" style="margin-top: 10px;">
+    <div style="margin-top: 24px;">
+        <div style="font-size: 10pt; line-height: 1.6;">Date: ${formattedDate}</div>
+        <div style="font-size: 10pt; line-height: 1.6;">Place: Chennai</div>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; margin-top: 24px;">
         <tr>
-            <td class="uc-sign-date" style="padding-bottom: 0px;">
-                <div style="font-size: 9pt; line-height: 1.1;">Date:${formattedDate}</div>
-                <div style="font-size: 9pt; line-height: 1.1;">Place: Chennai</div>
+            <td style="width: 50%; border: none; padding: 0; text-align: left; vertical-align: top;">
+                <div style="font-size: 10pt; text-align: left;">Signature</div>
+                <div style="margin-top: 50px; font-size: 10pt; font-weight: bold;">Ravindra Padmakar Barlingay</div>
+                <div style="font-size: 10pt;">Chief Finance Officer</div>
+                <div style="font-size: 10pt;">(Head of the Finance)</div>
             </td>
-            <td class="uc-sign-date"></td>
-        </tr>
-        <tr>
-            <td class="uc-sign-cell" style="padding-top: 2px;">
-                <div class="uc-sign-line"></div>
-                <div style="font-size: 9pt; line-height: 1.1;">Signature</div>
-                <div style="font-size: 9pt; line-height: 1.1;">Name..................................</div>
-                <div style="font-size: 9pt; line-height: 1.1;">Chief Finance Officer</div>
-                <div style="font-size: 9pt; line-height: 1.1;">(Head of the Finance)</div>
-            </td>
-            <td class="uc-sign-cell" style="padding-top: 2px;">
-                <div class="uc-sign-line"></div>
-                <div style="font-size: 9pt; line-height: 1.1;">Signature</div>
-                <div style="font-size: 9pt; line-height: 1.1;">Name..................................</div>
-                <div style="font-size: 9pt; line-height: 1.1;">Head of the Organisation</div>
+            <td style="width: 50%; border: none; padding: 0; text-align: right; vertical-align: top;">
+                <div style="font-size: 10pt; text-align: right;">Signature</div>
+                <div style="margin-top: 50px; font-size: 10pt; font-weight: bold; text-align: right;">Anil Prabhakar</div>
+                <div style="font-size: 10pt; text-align: right;">Head of the Organisation</div>
             </td>
         </tr>
     </table>
 
-    <div class="uc-footnote" style="margin-top: 2px; font-size: 9pt; line-height: 1.1;">(Strike out inapplicable terms)</div>
+    <div style="margin-top: 18px; font-size: 10pt;">(Strike out inapplicable terms)</div>
 </div>
 `;
 
         const pageThree = `
-<div class="page-container">
-    <div style="text-align: center; margin-bottom: 6px; max-width: 100%; overflow: hidden;">
-        <img src="${headerSrc}" style="width: 100%; max-width: 100%; height: auto; display: block; margin: 0 auto; max-height: 80px;" alt="Header"/>
+<div class="page-container page-three">
+    <div style="text-align: center; margin-bottom: 10px; page-break-before: always page-break-before: always;">
+        <img src="${headerSrc}" style="width: 100%; height: auto; display: block;" alt="Header"/>
     </div>
     <h1 class="uc-main-title">${gfrTitleB}</h1>
     <h2 class="uc-sub-title">[See Rule 256 (2)]</h2>
@@ -2886,16 +3064,14 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     </div>
 
     <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">Kind of checks exercised</div>
-    <ol class="uc-list">
-        <li>Sanction order</li>
-        <li>PFMS Report HTSA</li>
+    <ol class="uc-list" style="margin-top: 8px; margin-bottom: 8px; margin-left: 30px; padding-left: 0px;">
+        <li style="margin-bottom: 8px; line-height: 1.6;">Sanction order</li>
+        <li style="margin-bottom: 8px; line-height: 1.6;">PFMS Report HTSA</li>
     </ol>
 
     <div class="uc-signatures" style="margin-top: 18pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
-        <div class="uc-sign-left"></div>
         <div class="uc-sign-right">
             <div class="uc-sign-block">
-                <div class="uc-sign-line"></div>
                 <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Signature...............................</div>
                 <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Designation..................................</div>
                 <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Date..................................</div>
@@ -2905,316 +3081,9 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
 </div>
 `;
 
-        const docContent = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8"/>
-    <title>Utilization Certificate - ${grantTypeText}</title>
-    <style>
-        @page { size: A4 portrait; margin: ${pageMarginMm}; }
-        @font-face {
-            font-family: 'FuturaBT-Book';
-            src: local('FuturaBT-Book'), local('Futura BT Book'), local('Futura');
-        }
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
-            font-size: 10pt;
-
-        }
-        html, body { 
-            width: 100%; 
-            height: 100%; 
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
-            background-color: #ffffff;
-            font-size: 10pt;
-        }
-        body { 
-            margin: 0; 
-            padding: ${bodyPaddingMm};
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
-            font-size: 10pt;
-        }
-        .page-container {
-            width: 100%;
-            max-width: 100%;
-            background-color: #ffffff;
-            padding: ${pagePaddingMm};
-            margin: 0;
-            box-shadow: none;
-            page-break-after: always;
-            page-break-inside: auto;
-            overflow: visible;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        .page-break { page-break-after: always; }
-        h1, h2, h3, h4 { 
-            margin: 6px 0; 
-            text-align: center;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 12pt;
-            font-weight: bold;
-        }
-        p { 
-            margin: 4px 0; 
-            line-height: 1.4;
-            text-align: justify;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        table { 
-            width: 100%; 
-            max-width: 100%; 
-            border-collapse: collapse; 
-            border-spacing: 0; 
-            margin: ${tableMarginMm} 0; 
-            font-size: ${tableFontPt}; 
-            table-layout: fixed; 
-            page-break-inside: auto;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            margin-left: 0;
-            margin-right: 0;
-        }
-        tr { 
-            page-break-inside: avoid; 
-            page-break-after: auto;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        table th, table td { 
-            border: 1px solid #000; 
-            padding: ${tablePaddingPt}; 
-            text-align: center; 
-            word-break: break-word; 
-            overflow-wrap: anywhere; 
-            line-height: 1.1;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: ${tableFontPt};
-            vertical-align: middle;
-        }
-        table th { 
-            background-color: #f0f0f0; 
-            font-weight: bold;
-            font-size: ${tableFontPt};
-        }
-        .uc-title-block { 
-            text-align: center; 
-            margin-bottom: 5px;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        .uc-form-title { 
-            font-size: 12pt; 
-            font-weight: bold; 
-            margin: 0;
-            text-align: center;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        .uc-year-line { 
-            font-size: 10pt; 
-            margin: 2px 0; 
-            text-align: center;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        .uc-section-title { 
-            font-weight: bold; 
-            margin: 6px 0 4px 0; 
-            font-size: 12pt;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        .uc-end-section { 
-            margin-top: 6px; 
-            font-size: 10pt;
-            text-align: left;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        .uc-paragraph { 
-            text-align: justify; 
-            font-size: 10pt;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            margin: 2px 0;
-            line-height: 1.3;
-        }
-        .uc-list { 
-            margin-top: 1px; 
-            margin-bottom: 1px;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-            text-align: left;
-        }
-        .uc-list li { 
-            margin: 1px 0; 
-            font-size: 10pt;
-            text-align: justify;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            line-height: 1.3;
-        }
-        .uc-list ul { 
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        .uc-list ul li { 
-            text-align: justify;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        .uc-sign-table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 8px;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        .uc-sign-table td { 
-            border: none; 
-            padding: 0; 
-            vertical-align: top;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-            text-align: justify;
-            line-height: 1.2;
-        }
-        .uc-sign-date { 
-            width: 50%; 
-            font-size: 9pt; 
-            padding-bottom: 0px;
-            line-height: 1.1;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            text-align: justify;
-        }
-        .uc-sign-cell { 
-            width: 50%; 
-            text-align: center; 
-            font-size: 9pt; 
-            padding-top: 0px;
-            line-height: 1.1;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        .uc-sign-line { 
-            border-top: 1px solid #000; 
-            width: 170px; 
-            margin: 0 auto 1px auto; 
-            height: 4px; 
-        }
-        .uc-footnote { 
-            margin-top: 2px; 
-            font-size: 10pt; 
-            text-align: justify;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        .uc-main-title { 
-            margin: 0 0 2px 0; 
-            font-size: 12pt; 
-            font-weight: bold;
-            text-align: center;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        .uc-sub-title { 
-            margin: 0 0 4px 0; 
-            font-size: 10pt; 
-            font-weight: normal;
-            text-align: center;
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        .uc-signatures {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        .uc-sign-left {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        .uc-sign-right {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        .uc-sign-block {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-            text-align: right;
-        }
-        ol, ul {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        li {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-            text-align: justify;
-        }
-        strong, b {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        u {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        div {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-            text-align: justify;
-        }
-        span {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        br {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-        }
-        i, em {
-            font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-            font-size: 10pt;
-        }
-        @media print {
-            html, body { width: 210mm; height: 297mm; margin: 0; padding: 0; background-color: #ffffff; }
-            .page-container { width: 100%; margin: 0; box-shadow: none; page-break-after: always; page-break-inside: auto; overflow: visible; }
-        }
-    </style>
-</head>
-<body>
-${pageOne}<div class="page-break"></div>${pageTwo}<div class="page-break"></div>${pageThree}
-</body>
-</html>`;
-
-        if (format === 'pdf') {
-            const newWindow = window.open('', '_blank');
-            newWindow.document.open();
-            newWindow.document.write(docContent);
-            newWindow.document.close();
-            const waitForImages = () => {
-                const images = Array.from(newWindow.document.images || []);
-                if (images.length === 0) {
-                    newWindow.print();
-                    return;
-                }
-                let loaded = 0;
-                const onDone = () => {
-                    loaded += 1;
-                    if (loaded >= images.length) {
-                        newWindow.print();
-                    }
-                };
-                images.forEach(img => {
-                    if (img.complete) {
-                        onDone();
-                    } else {
-                        img.onload = onDone;
-                        img.onerror = onDone;
-                    }
-                });
-            };
-            setTimeout(waitForImages, 150);
-            showAlert(`UC ${grantTypeText} prepared for printing. Use print dialog to save as PDF.`, 'success');
-            return;
-        }
-
-        if (format === 'word') {
-            // Create .doc (HTML) file for MS Word with comprehensive styling
-            const wordStyles = `
+        const docContent = `
                 <style>
-                    @page { size: A4 portrait; margin: ${pageMarginMm}; }
+                    @page { size: A4 portrait; margin: ${pageMarginMm} ${pagePaddingLeftRightMm}; }
                     @font-face {
                         font-family: 'FuturaBT-Book';
                         src: local('FuturaBT-Book'), local('Futura BT Book'), local('Futura');
@@ -3231,20 +3100,31 @@ ${pageOne}<div class="page-break"></div>${pageTwo}<div class="page-break"></div>
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
                         background-color: #ffffff; 
                         margin: 0; 
-                        padding: ${bodyPaddingMm}; 
+                        padding: ${bodyPaddingMm} 0; 
                         font-size: 10pt;
                     }
                     .page-container {
                         width: 100%;
                         max-width: 100%;
                         background-color: #ffffff;
-                        padding: ${pagePaddingMm};
-                        margin: 0;
-                        page-break-after: always;
+                        padding-top: ${pageMarginMm};
+                        padding-bottom: 0;
+                        padding-left: ${pagePaddingLeftRightMm};
+                        padding-right: ${pagePaddingLeftRightMm};
+                        box-sizing: border-box;
                         page-break-inside: auto;
                         overflow: visible;
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
+                    }
+                    .page-one {
+                        page-break-before: auto;
+                    }
+                    .page-two {
+                        page-break-before: always;
+                    }
+                    .page-three {
+                        page-break-before: always;
                     }
                     .page-break { page-break-after: always; }
                     h1, h2, h3, h4 { 
@@ -3337,21 +3217,26 @@ ${pageOne}<div class="page-break"></div>${pageTwo}<div class="page-break"></div>
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
                         text-align: left;
+                        margin-top: 6px
                     }
                     .uc-list li { 
-                        margin: 6px 0;
-                        text-align: justify;
-                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-                        font-size: 10pt;
-                    }
+                     margin: 6px 0;
+                     text-align: justify;
+                     font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                      font-size: 10pt;
+                     line-height: 1.6;   
+                     margin-top: 6px
+                     }
                     .uc-list ul { 
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
+                        margin-top: 6px
                     }
                     .uc-list ul li { 
                         text-align: justify;
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
+                        margin-top: 16px
                     }
                     .uc-sign-table { 
                         width: 100%; 
@@ -3443,10 +3328,10 @@ ${pageOne}<div class="page-break"></div>${pageTwo}<div class="page-break"></div>
                         font-size: 10pt;
                     }
                     div {
-                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-                        font-size: 10pt;
-                        text-align: justify;
-                    }
+                    font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    font-size: 10pt;
+                    text-align: justify;
+                     line-height: 1.6;   
                     span {
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
@@ -3458,13 +3343,327 @@ ${pageOne}<div class="page-break"></div>${pageTwo}<div class="page-break"></div>
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
                     }
+                    s, del {
+                        text-decoration: line-through;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                </style>
+            
+</head>
+<body>
+${pageOne}${pageTwo}${pageThree}
+</body>
+</html>`;
+
+        if (format === 'pdf') {
+            const newWindow = window.open('', '_blank');
+            newWindow.document.open();
+            newWindow.document.write(docContent);
+            newWindow.document.close();
+            const waitForImages = () => {
+                const images = Array.from(newWindow.document.images || []);
+                if (images.length === 0) {
+                    newWindow.print();
+                    return;
+                }
+                let loaded = 0;
+                const onDone = () => {
+                    loaded += 1;
+                    if (loaded >= images.length) {
+                        newWindow.print();
+                    }
+                };
+                images.forEach(img => {
+                    if (img.complete) {
+                        onDone();
+                    } else {
+                        img.onload = onDone;
+                        img.onerror = onDone;
+                    }
+                });
+            };
+            setTimeout(waitForImages, 150);
+            showAlert(`UC ${grantTypeText} prepared for printing. Use print dialog to save as PDF.`, 'success');
+            return;
+        }
+
+        if (format === 'word') {
+            // Create .doc (HTML) file for MS Word with comprehensive styling
+            const wordStyles = `
+                <style>
+                    @page { size: A4 portrait; margin: ${pageMarginMm} ${pageMarginLeftRightMm}; }
+                    @font-face {
+                        font-family: 'FuturaBT-Book';
+                        src: local('FuturaBT-Book'), local('Futura BT Book'), local('Futura');
+                    }
+                    * { 
+                        margin: 0; 
+                        padding: 0; 
+                        box-sizing: border-box; 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
+                        font-size: 10pt;
+                        text-align: justify;
+                    }
+                    body { 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif !important;
+                        background-color: #ffffff; 
+                        margin: 0; 
+                        padding: ${bodyPaddingMm} 0; 
+                        font-size: 10pt;
+                    }
+                    .page-container {
+                        width: 100%;
+                        max-width: 100%;
+                        background-color: #ffffff;
+                        padding-top: ${pageMarginMm};
+                        padding-bottom: 0;
+                        padding-left: ${pageMarginLeftRightMm};
+                        padding-right: ${pageMarginLeftRightMm};
+                        box-sizing: border-box;
+                        page-break-inside: auto;
+                        overflow: visible;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .page-one {
+                        page-break-before: auto;
+                    }
+                    .page-two {
+                        page-break-before: always;
+                    }
+                    .page-three {
+                        page-break-before: always;
+                    }
+                    .page-break { page-break-after: always; }
+                    h1, h2, h3, h4 { 
+                        margin: 10px 0; 
+                        text-align: center; 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 12pt;
+                        font-weight: bold;
+                    }
+                    p { 
+                        margin: 8px 0; 
+                        line-height: 1.5; 
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    table { 
+                        width: 100%; 
+                        max-width: 100%; 
+                        border-collapse: collapse; 
+                        border-spacing: 0; 
+                        margin: ${tableMarginMm} 0; 
+                        font-size: ${tableFontPt}; 
+                        table-layout: fixed; 
+                        page-break-inside: auto;
+                        mso-table-lspace: 0pt;
+                        mso-table-rspace: 0pt;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        margin-left: 0;
+                        margin-right: 0;
+                    }
+                    tr { 
+                        page-break-inside: avoid; 
+                        page-break-after: auto;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    table th, table td { 
+                        border: 1px solid #000; 
+                        padding: ${tablePaddingPt}; 
+                        text-align: center; 
+                        word-break: break-word; 
+                        overflow-wrap: anywhere; 
+                        line-height: 1.1;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: ${tableFontPt};
+                        vertical-align: middle;
+                    }
+                    table th { 
+                        background-color: #f0f0f0; 
+                        font-weight: bold;
+                        font-size: ${tableFontPt};
+                    }
+                    .uc-title-block { 
+                        text-align: center; 
+                        margin-bottom: 5px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-form-title { 
+                        font-size: 12pt; 
+                        font-weight: bold; 
+                        margin: 0;
+                        text-align: center;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-year-line { 
+                        font-size: 10pt; 
+                        margin: 0; 
+                        text-align: center;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-section-title { 
+                        font-weight: bold; 
+                        margin: 10px 0;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 12pt;
+                        
+                    }
+                    .uc-end-section { 
+                        margin-top: 10px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: left;
+                    }
+                    .uc-paragraph { 
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-list { 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: left;
+                        margin-top: 6px
+                    }
+                    .uc-list li { 
+                     margin: 6px 0;
+                     text-align: justify;
+                     font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                      font-size: 10pt;
+                     line-height: 1.6;   
+                     margin-top: 6px
+                     }
+                    .uc-list ul { 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        margin-top: 6px
+                    }
+                    .uc-list ul li { 
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        margin-top: 16px
+                    }
+                    .uc-sign-table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        margin-top: 24px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-sign-table td { 
+                        border: none; 
+                        padding: 0; 
+                        vertical-align: top;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: justify;
+                    }
+                    .uc-sign-date { 
+                        width: 50%; 
+                        font-size: 10pt; 
+                        padding-bottom: 16px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        text-align: justify;
+                    }
+                    .uc-sign-cell { 
+                        width: 50%; 
+                        text-align: center; 
+                        font-size: 10pt; 
+                        padding-top: 8px;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-sign-line { 
+                        border-top: 1px solid #000; 
+                        width: 170px; 
+                        margin: 0 auto 6px auto; 
+                        height: 12px; 
+                    }
+                    .uc-footnote { 
+                        margin-top: 18px; 
+                        font-size: 10pt; 
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-main-title { 
+                        margin: 0 0 2px 0; 
+                        font-size: 12pt; 
+                        font-weight: bold;
+                        text-align: center;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-sub-title { 
+                        margin: 0 0 4px 0; 
+                        font-size: 10pt; 
+                        font-weight: normal;
+                        text-align: center;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    .uc-signatures {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-sign-left {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-sign-right {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    .uc-sign-block {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: right;
+                    }
+                    ol, ul {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    li {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        text-align: justify;
+                    }
+                    strong, b {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    u {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    div {
+                    font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    font-size: 10pt;
+                    text-align: justify;
+                     line-height: 1.6;   
+                    span {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    br {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                    }
+                    i, em {
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
+                    s, del {
+                        text-decoration: line-through;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                    }
                 </style>
             `;
             const docHeader = `<html xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8">${wordStyles}</head><body>`;
             const docFooter = `</body></html>`;
-            
+
             const fullDoc = docHeader + docContent.substring(docContent.indexOf('<body>') + 6, docContent.indexOf('</body>')) + docFooter;
-            
+
             const blob = new Blob([fullDoc], { type: 'application/msword' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -3494,7 +3693,7 @@ function updateGFR12BValues() {
                 if (rows.length > 0) {
                     const firstRow = rows[0];
                     const cells = firstRow.querySelectorAll('td');
-                    
+
                     // Extract expenditure (col 7) and closing balance (col 8)
                     if (cells[7]) {
                         const expValue = cells[7].textContent.trim();
@@ -3509,7 +3708,7 @@ function updateGFR12BValues() {
                 }
             }
         }
-        
+
         // Get Non-Recurring UC table
         const nonRecurringTable = document.getElementById('ucNonRecurringTable');
         if (nonRecurringTable) {
@@ -3519,7 +3718,7 @@ function updateGFR12BValues() {
                 if (rows.length > 0) {
                     const firstRow = rows[0];
                     const cells = firstRow.querySelectorAll('td');
-                    
+
                     // Extract expenditure (col 7) and closing balance (col 8)
                     if (cells[7]) {
                         const expValue = cells[7].textContent.trim();
@@ -3534,31 +3733,31 @@ function updateGFR12BValues() {
                 }
             }
         }
-        
+
         // Update Recurring grant details - show all amounts and dates combined
         if (allUCDetailedData && allUCDetailedData.length > 0) {
             // Build string with all amounts and dates: "Rs X dated Y and Rs Z dated W"
-            const amountsAndDates = allUCDetailedData.map(data => 
+            const amountsAndDates = allUCDetailedData.map(data =>
                 `Rs ${formatCurrency(data.amount)} dated ${data.date}`
             ).join(' and ');
-            
+
             // Build organizations string
-            const organizations = allUCDetailedData.map(data => 
+            const organizations = allUCDetailedData.map(data =>
                 data.sanction_number || ''
             ).filter(org => org).join(' and ');
-            
+
             const grantAmountEl = document.getElementById('gfr12b-grant-amount-recurring');
             const grantDateEl = document.getElementById('gfr12b-grant-date-recurring');
             const sanctionNoEl = document.getElementById('gfr12b-sanction-no-recurring');
             const orgEl = document.getElementById('gfr12b-org-recurring');
             const yearEl = document.getElementById('gfr12b-year-recurring');
-            
+
             if (grantAmountEl) grantAmountEl.textContent = amountsAndDates;
             if (grantDateEl) grantDateEl.textContent = '';
             if (sanctionNoEl) sanctionNoEl.textContent = '';
             if (orgEl) orgEl.textContent = organizations;
             if (yearEl) yearEl.textContent = (financialYearValue && financialYearValue.textContent) || '2025-26';
-            
+
             console.log(`✓ Updated GFR 12-B Recurring Grant Details:`, {
                 amountsAndDates: amountsAndDates,
                 orgs: organizations,
@@ -3567,31 +3766,31 @@ function updateGFR12BValues() {
         } else {
             console.warn('No Recurring UC data available for grant details');
         }
-        
+
         // Update Non-Recurring grant details - show all amounts and dates combined
         if (allUCDetailedDataNonRecurring && allUCDetailedDataNonRecurring.length > 0) {
             // Build string with all amounts and dates: "Rs X dated Y and Rs Z dated W"
-            const amountsAndDates = allUCDetailedDataNonRecurring.map(data => 
+            const amountsAndDates = allUCDetailedDataNonRecurring.map(data =>
                 `Rs ${formatCurrency(data.amount)} dated ${data.date}`
             ).join(' and ');
-            
+
             // Build organizations string
-            const organizations = allUCDetailedDataNonRecurring.map(data => 
+            const organizations = allUCDetailedDataNonRecurring.map(data =>
                 data.sanction_number || ''
             ).filter(org => org).join(' and ');
-            
+
             const grantAmountEl = document.getElementById('gfr12b-grant-amount-nonrecurring');
             const grantDateEl = document.getElementById('gfr12b-grant-date-nonrecurring');
             const sanctionNoEl = document.getElementById('gfr12b-sanction-no-nonrecurring');
             const orgEl = document.getElementById('gfr12b-org-nonrecurring');
             const yearEl = document.getElementById('gfr12b-year-nonrecurring');
-            
+
             if (grantAmountEl) grantAmountEl.textContent = amountsAndDates;
             if (grantDateEl) grantDateEl.textContent = '';
             if (sanctionNoEl) sanctionNoEl.textContent = '';
             if (orgEl) orgEl.textContent = organizations;
             if (yearEl) yearEl.textContent = (financialYearValue && financialYearValue.textContent) || '2025-26';
-            
+
             console.log(`✓ Updated GFR 12-B Non-Recurring Grant Details:`, {
                 amountsAndDates: amountsAndDates,
                 orgs: organizations,
@@ -3611,7 +3810,7 @@ function downloadAllTHubTables() {
         showAlert('No T-Hub data available to download', 'error');
         return;
     }
-    
+
     // Show format selection dialog for T-Hub
     showFormatSelectionDialog('thub');
 }
@@ -3622,7 +3821,7 @@ function downloadTHubTablesInFormat(format) {
         showAlert('No T-Hub data available to download', 'error');
         return;
     }
-    
+
     // Send request to backend with format
     fetch('/download-thub-tables', {
         method: 'POST',
@@ -3634,30 +3833,30 @@ function downloadTHubTablesInFormat(format) {
             data: allTHubData
         })
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Download failed');
-        return response.blob();
-    })
-    .then(blob => {
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Set filename based on format
-        const filename = `All_T-Hub_Tables.${getFileExtension(format)}`;
-        link.download = filename;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showAlert(`T-Hub tables downloaded successfully as ${format.toUpperCase()}!`, 'success');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error downloading file. Please try again.', 'error');
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('Download failed');
+            return response.blob();
+        })
+        .then(blob => {
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Set filename based on format
+            const filename = `All_T-Hub_Tables.${getFileExtension(format)}`;
+            link.download = filename;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showAlert(`T-Hub tables downloaded successfully as ${format.toUpperCase()}!`, 'success');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error downloading file. Please try again.', 'error');
+        });
 }
 
 // Download T-Hub Totals Table in selected format
@@ -3666,7 +3865,7 @@ function downloadTHubTotalsTable(format) {
         showAlert('No T-Hub totals data available to download', 'error');
         return;
     }
-    
+
     // Send request to backend with format
     fetch('/download-thub-totals', {
         method: 'POST',
@@ -3679,30 +3878,30 @@ function downloadTHubTotalsTable(format) {
             toDate: window.thubTotalsToDate || ''
         })
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Download failed');
-        return response.blob();
-    })
-    .then(blob => {
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Set filename based on format
-        const filename = `T-Hub_Expenditure_Totals.${getFileExtension(format)}`;
-        link.download = filename;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showAlert(`T-Hub totals downloaded successfully as ${format.toUpperCase()}!`, 'success');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error downloading file. Please try again.', 'error');
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('Download failed');
+            return response.blob();
+        })
+        .then(blob => {
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Set filename based on format
+            const filename = `T-Hub_Expenditure_Totals.${getFileExtension(format)}`;
+            link.download = filename;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showAlert(`T-Hub totals downloaded successfully as ${format.toUpperCase()}!`, 'success');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error downloading file. Please try again.', 'error');
+        });
 }
 
 // Show format selection dialog for T-Hub & TGs Comparison
@@ -3721,7 +3920,7 @@ function showThubTgsComparisonFormatDialog() {
         justify-content: center;
         z-index: 2000;
     `;
-    
+
     const modalContent = document.createElement('div');
     modalContent.style.cssText = `
         background: white;
@@ -3731,28 +3930,28 @@ function showThubTgsComparisonFormatDialog() {
         max-width: 400px;
         text-align: center;
     `;
-    
+
     const title = document.createElement('h3');
     title.textContent = 'Select Download Format';
     title.style.marginBottom = '20px';
     title.style.color = '#212529';
-    
+
     const description = document.createElement('p');
     description.textContent = 'Choose the format you want to download the T-Hub & TGs Comparison:';
     description.style.marginBottom = '20px';
     description.style.color = '#495057';
-    
+
     const buttonContainer = document.createElement('div');
     buttonContainer.style.display = 'flex';
     buttonContainer.style.gap = '10px';
     buttonContainer.style.flexDirection = 'column';
-    
+
     const formats = [
         { name: 'Excel', icon: '📊', action: 'excel' },
         { name: 'PDF', icon: '📄', action: 'pdf' },
         { name: 'Word', icon: '📃', action: 'word' }
     ];
-    
+
     formats.forEach(format => {
         const btn = document.createElement('button');
         btn.textContent = `${format.icon} Download as ${format.name}`;
@@ -3775,7 +3974,7 @@ function showThubTgsComparisonFormatDialog() {
         };
         buttonContainer.appendChild(btn);
     });
-    
+
     const cancelBtn = document.createElement('button');
     cancelBtn.textContent = 'Cancel';
     cancelBtn.style.cssText = `
@@ -3794,7 +3993,7 @@ function showThubTgsComparisonFormatDialog() {
     cancelBtn.onmouseout = () => cancelBtn.style.background = '#6c757d';
     cancelBtn.onclick = () => modal.remove();
     buttonContainer.appendChild(cancelBtn);
-    
+
     modalContent.appendChild(title);
     modalContent.appendChild(description);
     modalContent.appendChild(buttonContainer);
@@ -3808,7 +4007,7 @@ function downloadThubTgsComparison(format) {
         showAlert('No T-Hub & TGs comparison data available to download', 'error');
         return;
     }
-    
+
     // Send request to backend with format
     fetch('/download-thub-tgs-comparison', {
         method: 'POST',
@@ -3820,53 +4019,53 @@ function downloadThubTgsComparison(format) {
             data: thubTgsComparisonData
         })
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Download failed');
-        return response.blob();
-    })
-    .then(blob => {
-        // Create download link
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        
-        // Set filename based on format
-        const filename = `T-Hub_TGs_Comparison.${getFileExtension(format)}`;
-        link.download = filename;
-        
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showAlert(`T-Hub & TGs comparison downloaded successfully as ${format.toUpperCase()}!`, 'success');
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error downloading file. Please try again.', 'error');
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('Download failed');
+            return response.blob();
+        })
+        .then(blob => {
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+
+            // Set filename based on format
+            const filename = `T-Hub_TGs_Comparison.${getFileExtension(format)}`;
+            link.download = filename;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showAlert(`T-Hub & TGs comparison downloaded successfully as ${format.toUpperCase()}!`, 'success');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error downloading file. Please try again.', 'error');
+        });
 }
 
 // Display T-Hub & TGs Comparison Table
 function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
     const section = document.getElementById('thubTgsComparisonSection');
     if (!section) return;
-    
+
     // Debug: Log the input data
     console.log('DEBUG displayTHubTgsComparison - thubSummaryData:', thubSummaryData);
     console.log('DEBUG displayTHubTgsComparison - tgSummaryData:', tgSummaryData);
-    
+
     // Show the section
     section.style.display = 'block';
-    
+
     const table = document.getElementById('thubTgsComparisonTable');
     if (!table) return;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
     if (!thead || !tbody) return;
-    
+
     thead.innerHTML = '';
     tbody.innerHTML = '';
-    
+
     // Create header row
     const headerRow = document.createElement('tr');
     const headers = [
@@ -3876,19 +4075,19 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
         { main: `Balance as on (${toDate || 'DD/MM/YYYY'})`, roman: '(IV = II - III)' },
         { main: 'Remarks', roman: '(if any)' }
     ];
-    
+
     headers.forEach(headerObj => {
         const th = document.createElement('th');
         th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
-    
+
     // Get T-Hub totals for RECURRING only
     let thubTotalFundsReleased = 0;
     let thubTotalExpenditure = 0;
     let thubBalance = 0;
-    
+
     if (thubSummaryData && thubSummaryData.length > 0) {
         thubSummaryData.forEach(row => {
             // Check if row is NOT a Grand Total and is RECURRING
@@ -3898,21 +4097,21 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
                 const fundLimit = parseFloat(row['Expenditure_Limit']) || 0;
                 const fundSpent = parseFloat(row['Expenditure_Spent']) || 0;
                 const balance = parseFloat(row['Balance']) || 0;
-                
+
                 thubTotalFundsReleased += fundLimit;
                 thubTotalExpenditure += fundSpent;
                 thubBalance += balance;
             }
         });
     }
-    
+
     console.log('DEBUG: Calculated thubTotalFundsReleased:', thubTotalFundsReleased, 'thubTotalExpenditure:', thubTotalExpenditure, 'thubBalance:', thubBalance);
-    
+
     // Get TGs totals - sum all TG rows (they don't have Grand Total row)
     let tgsTotalFundsReleased = 0;
     let tgsTotalExpenditure = 0;
     let tgsBalance = 0;
-    
+
     if (tgSummaryData && tgSummaryData.length > 0) {
         tgSummaryData.forEach(row => {
             // Skip Grand Total if it exists
@@ -3922,16 +4121,16 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
                 const fundLimit = parseFloat(row['Recurring - Expenditure Limit']) || parseFloat(row['Non-Recurring - Expenditure Limit']) || 0;
                 const fundSpent = parseFloat(row['Recurring - Expenditure Spent']) || parseFloat(row['Non-Recurring - Expenditure Spent']) || 0;
                 const balance = parseFloat(row['Recurring - Balance']) || parseFloat(row['Non-Recurring - Balance']) || 0;
-                
+
                 tgsTotalFundsReleased += fundLimit;
                 tgsTotalExpenditure += fundSpent;
                 tgsBalance += balance;
             }
         });
     }
-    
+
     console.log('DEBUG: Calculated tgsTotalFundsReleased:', tgsTotalFundsReleased, 'tgsTotalExpenditure:', tgsTotalExpenditure, 'tgsBalance:', tgsBalance);
-    
+
     // Add T-Hub row
     const thubRow = document.createElement('tr');
     const thubCells = [
@@ -3941,7 +4140,7 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
         thubBalance,
         ''
     ];
-    
+
     thubCells.forEach((value, index) => {
         const td = document.createElement('td');
         if (index === 0 || index === 4) {
@@ -3953,7 +4152,7 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
         thubRow.appendChild(td);
     });
     tbody.appendChild(thubRow);
-    
+
     // Add TGs row
     const tgsRow = document.createElement('tr');
     const tgsCells = [
@@ -3963,7 +4162,7 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
         tgsBalance,
         ''
     ];
-    
+
     tgsCells.forEach((value, index) => {
         const td = document.createElement('td');
         if (index === 0 || index === 4) {
@@ -3975,12 +4174,12 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
         tgsRow.appendChild(td);
     });
     tbody.appendChild(tgsRow);
-    
+
     // Add Total row
     const totalRow = document.createElement('tr');
     totalRow.style.fontWeight = 'bold';
     totalRow.style.backgroundColor = '#e3f2fd';
-    
+
     const totalCells = [
         'Total',
         thubTotalFundsReleased + tgsTotalFundsReleased,
@@ -3988,7 +4187,7 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
         thubBalance + tgsBalance,
         ''
     ];
-    
+
     totalCells.forEach((value, index) => {
         const td = document.createElement('td');
         if (index === 0 || index === 4) {
@@ -4000,7 +4199,7 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
         totalRow.appendChild(td);
     });
     tbody.appendChild(totalRow);
-    
+
     // Store data globally for download
     window.thubTgsComparisonData = {
         toDate: toDate,
@@ -4016,7 +4215,7 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
         thubData: thubSummaryData && thubSummaryData.length > 0,
         tgsData: tgSummaryData && tgSummaryData.length > 0
     };
-    
+
     // Also store in the global variable for downloads
     allComparisonTableData = [{
         sheetName: 'Total Expenditure (T-Hub & TGs)',
@@ -4044,7 +4243,7 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
             }
         ]
     }];
-    
+
     console.log('DEBUG: thubTgsComparisonData stored:', window.thubTgsComparisonData);
 }
 
@@ -4052,7 +4251,7 @@ function displayTHubTgsComparison(tgSummaryData, thubSummaryData, toDate) {
 function displayTGDetailedTables(tgSummaryData, toDate) {
     const container = document.getElementById('tgDetailedTablesContainer');
     if (!container) return;
-    
+
     // Mapping of TG codes to institution names
     const tgNameMapping = {
         'TG1': 'QuILA',
@@ -4060,33 +4259,33 @@ function displayTGDetailedTables(tgSummaryData, toDate) {
         'TG3': 'TAHQEECAT',
         'TG4': 'QuEPRAN'
     };
-    
+
     container.innerHTML = '';
     allTGDetailedData = []; // Reset the global data
-    
+
     if (!tgSummaryData || tgSummaryData.length === 0) return;
-    
+
     // Filter out Grand Total row
     const tgData = tgSummaryData.filter(row => row['TG'] !== 'Grand Total');
-    
+
     // Process each TG
     tgData.forEach(row => {
         const tgName = row['TG'];
         const institutionName = tgNameMapping[tgName] || 'Unknown';
-        
+
         const section = document.createElement('div');
         section.className = 'tg-detailed-section';
-        
+
         // Header without individual download button
         const headerDiv = document.createElement('div');
         headerDiv.className = 'tg-detailed-header';
-        
+
         const titleSpan = document.createElement('span');
         titleSpan.textContent = `${tgName} - ${institutionName}`;
-        
+
         headerDiv.appendChild(titleSpan);
         section.appendChild(headerDiv);
-        
+
         // Store data for combined download
         const tableData = {
             tgName: tgName,
@@ -4111,37 +4310,37 @@ function displayTGDetailedTables(tgSummaryData, toDate) {
                 }
             ]
         };
-        
+
         allTGDetailedData.push(tableData);
-        
+
         // Create table
         const table = document.createElement('table');
         table.className = 'tg-detail-table';
-        
+
         // Table header
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
-const headers = [
-  { main: "Sanctioned Head", roman: "(I)" },
-  { main: "Total Funds Released", roman: "(II)" },
-  { main: "Total Expenditure", roman: "(III)" },
-  { main: `Balance as on (${toDate})`, roman: "(IV = II - III)" },
-  { main: "Remarks", roman: "(if any)" }
-];
-        
+        const headers = [
+            { main: "Sanctioned Head", roman: "(I)" },
+            { main: "Total Funds Released", roman: "(II)" },
+            { main: "Total Expenditure", roman: "(III)" },
+            { main: `Balance as on (${toDate})`, roman: "(IV = II - III)" },
+            { main: "Remarks", roman: "(if any)" }
+        ];
+
         headers.forEach(headerObj => {
             const th = document.createElement('th');
             th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
-         table.appendChild(thead);
+        table.appendChild(thead);
 
-        
+
         // Table body - Recurring row
         const tbody = document.createElement('tbody');
         const recurringRow = document.createElement('tr');
-        
+
         // Get values from tg_summary_table
         const recurringData = [
             'Recurring',
@@ -4150,7 +4349,7 @@ const headers = [
             row['Recurring - Balance'] || '',
             ''
         ];
-        
+
         recurringData.forEach((value, index) => {
             const td = document.createElement('td');
             if (index > 0 && index < 4) {
@@ -4162,12 +4361,12 @@ const headers = [
             recurringRow.appendChild(td);
         });
         tbody.appendChild(recurringRow);
-        
+
         // Total row
         const totalRow = document.createElement('tr');
         totalRow.style.fontWeight = 'bold';
         totalRow.style.backgroundColor = '#e3f2fd';
-        
+
         const totalData = [
             'Total',
             row['Recurring - Expenditure Limit'] || '',
@@ -4175,7 +4374,7 @@ const headers = [
             row['Recurring - Balance'] || '',
             ''
         ];
-        
+
         totalData.forEach((value, index) => {
             const td = document.createElement('td');
             if (index > 0 && index < 4) {
@@ -4187,10 +4386,10 @@ const headers = [
             totalRow.appendChild(td);
         });
         tbody.appendChild(totalRow);
-        
+
         table.appendChild(tbody);
         section.appendChild(table);
-        
+
         container.appendChild(section);
     });
 }
@@ -4199,7 +4398,7 @@ const headers = [
 function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
     const container = document.getElementById('tgDetailedTablesContainerNonRecurring');
     if (!container) return;
-    
+
     // Mapping of TG codes to institution names
     const tgNameMapping = {
         'TG1': 'QuILA',
@@ -4207,33 +4406,33 @@ function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
         'TG3': 'TAHQEECAT',
         'TG4': 'QuEPRAN'
     };
-    
+
     container.innerHTML = '';
     allTGDetailedDataNonRecurring = []; // Reset the global data for non-recurring
-    
+
     if (!tgSummaryData || tgSummaryData.length === 0) return;
-    
+
     // Filter out Grand Total row
     const tgData = tgSummaryData.filter(row => row['TG'] !== 'Grand Total');
-    
+
     // Process each TG
     tgData.forEach(row => {
         const tgName = row['TG'];
         const institutionName = tgNameMapping[tgName] || 'Unknown';
-        
+
         const section = document.createElement('div');
         section.className = 'tg-detailed-section';
-        
+
         // Header without individual download button
         const headerDiv = document.createElement('div');
         headerDiv.className = 'tg-detailed-header';
-        
+
         const titleSpan = document.createElement('span');
         titleSpan.textContent = `${tgName} - ${institutionName}`;
-        
+
         headerDiv.appendChild(titleSpan);
         section.appendChild(headerDiv);
-        
+
         // Store data for combined download
         const tableData = {
             tgName: tgName,
@@ -4258,13 +4457,13 @@ function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
                 }
             ]
         };
-        
+
         allTGDetailedDataNonRecurring.push(tableData);
-        
+
         // Create table
         const table = document.createElement('table');
         table.className = 'tg-detail-table';
-        
+
         // Table header
         const thead = document.createElement('thead');
         const headerRow = document.createElement('tr');
@@ -4275,7 +4474,7 @@ function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
             { main: `Balance as on (${toDate})`, roman: "(IV = II - III)" },
             { main: "Remarks", roman: "(if any)" }
         ];
-        
+
         headers.forEach(headerObj => {
             const th = document.createElement('th');
             th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
@@ -4284,11 +4483,11 @@ function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
         thead.appendChild(headerRow);
         table.appendChild(thead);
 
-        
+
         // Table body - Non-Recurring row
         const tbody = document.createElement('tbody');
         const nonRecurringRow = document.createElement('tr');
-        
+
         // Get values from tg_summary_table (Non-Recurring columns)
         const nonRecurringData = [
             'Non-Recurring',
@@ -4297,7 +4496,7 @@ function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
             row['Non-Recurring - Balance'] || '',
             ''
         ];
-        
+
         nonRecurringData.forEach((value, index) => {
             const td = document.createElement('td');
             if (index > 0 && index < 4) {
@@ -4309,12 +4508,12 @@ function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
             nonRecurringRow.appendChild(td);
         });
         tbody.appendChild(nonRecurringRow);
-        
+
         // Total row
         const totalRow = document.createElement('tr');
         totalRow.style.fontWeight = 'bold';
         totalRow.style.backgroundColor = '#e3f2fd';
-        
+
         const totalData = [
             'Total',
             row['Non-Recurring - Expenditure Limit'] || '',
@@ -4322,7 +4521,7 @@ function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
             row['Non-Recurring - Balance'] || '',
             ''
         ];
-        
+
         totalData.forEach((value, index) => {
             const td = document.createElement('td');
             if (index > 0 && index < 4) {
@@ -4334,10 +4533,10 @@ function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
             totalRow.appendChild(td);
         });
         tbody.appendChild(totalRow);
-        
+
         table.appendChild(tbody);
         section.appendChild(table);
-        
+
         container.appendChild(section);
     });
 }
@@ -4346,23 +4545,23 @@ function displayTGDetailedTablesNonRecurring(tgSummaryData, toDate) {
 function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, toDate) {
     const section = document.getElementById('thubTgsComparisonSectionNonRecurring');
     if (!section) return;
-    
+
     // Debug: Log the input data
     console.log('DEBUG displayTHubTgsComparisonNonRecurring - thubSummaryData:', thubSummaryData);
     console.log('DEBUG displayTHubTgsComparisonNonRecurring - tgSummaryData:', tgSummaryData);
-    
+
     // Show the section
     section.style.display = 'block';
-    
+
     const table = document.getElementById('thubTgsComparisonTableNonRecurring');
     if (!table) return;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
     if (!thead || !tbody) return;
-    
+
     thead.innerHTML = '';
     tbody.innerHTML = '';
-    
+
     // Create header row
     const headerRow = document.createElement('tr');
     const headers = [
@@ -4372,19 +4571,19 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
         { main: `Balance as on (${toDate || 'DD/MM/YYYY'})`, roman: '(IV = II - III)' },
         { main: 'Remarks', roman: '(if any)' }
     ];
-    
+
     headers.forEach(headerObj => {
         const th = document.createElement('th');
         th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
-    
+
     // Get T-Hub totals for Non-Recurring only
     let thubTotalFundsReleased = 0;
     let thubTotalExpenditure = 0;
     let thubBalance = 0;
-    
+
     if (thubSummaryData && thubSummaryData.length > 0) {
         thubSummaryData.forEach(row => {
             // Check if row is NOT a Grand Total and is NON-RECURRING
@@ -4394,21 +4593,21 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
                 const fundLimit = parseFloat(row['Expenditure_Limit']) || 0;
                 const fundSpent = parseFloat(row['Expenditure_Spent']) || 0;
                 const balance = parseFloat(row['Balance']) || 0;
-                
+
                 thubTotalFundsReleased += fundLimit;
                 thubTotalExpenditure += fundSpent;
                 thubBalance += balance;
             }
         });
     }
-    
+
     console.log('DEBUG: Calculated thubTotalFundsReleased (Non-Recurring):', thubTotalFundsReleased, 'thubTotalExpenditure:', thubTotalExpenditure, 'thubBalance:', thubBalance);
-    
+
     // Get TGs totals for Non-Recurring - sum all TG rows (they don't have Grand Total row)
     let tgsTotalFundsReleased = 0;
     let tgsTotalExpenditure = 0;
     let tgsBalance = 0;
-    
+
     if (tgSummaryData && tgSummaryData.length > 0) {
         tgSummaryData.forEach(row => {
             // Skip Grand Total if it exists
@@ -4418,16 +4617,16 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
                 const fundLimit = parseFloat(row['Non-Recurring - Expenditure Limit']) || 0;
                 const fundSpent = parseFloat(row['Non-Recurring - Expenditure Spent']) || 0;
                 const balance = parseFloat(row['Non-Recurring - Balance']) || 0;
-                
+
                 tgsTotalFundsReleased += fundLimit;
                 tgsTotalExpenditure += fundSpent;
                 tgsBalance += balance;
             }
         });
     }
-    
+
     console.log('DEBUG: Calculated tgsTotalFundsReleased (Non-Recurring):', tgsTotalFundsReleased, 'tgsTotalExpenditure:', tgsTotalExpenditure, 'tgsBalance:', tgsBalance);
-    
+
     // Add T-Hub row
     const thubRow = document.createElement('tr');
     const thubCells = [
@@ -4437,7 +4636,7 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
         thubBalance,
         ''
     ];
-    
+
     thubCells.forEach((value, index) => {
         const td = document.createElement('td');
         if (index === 0 || index === 4) {
@@ -4449,7 +4648,7 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
         thubRow.appendChild(td);
     });
     tbody.appendChild(thubRow);
-    
+
     // Add TGs row
     const tgsRow = document.createElement('tr');
     const tgsCells = [
@@ -4459,7 +4658,7 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
         tgsBalance,
         ''
     ];
-    
+
     tgsCells.forEach((value, index) => {
         const td = document.createElement('td');
         if (index === 0 || index === 4) {
@@ -4471,12 +4670,12 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
         tgsRow.appendChild(td);
     });
     tbody.appendChild(tgsRow);
-    
+
     // Add Total row
     const totalRow = document.createElement('tr');
     totalRow.style.fontWeight = 'bold';
     totalRow.style.backgroundColor = '#e3f2fd';
-    
+
     const totalCells = [
         'Total',
         thubTotalFundsReleased + tgsTotalFundsReleased,
@@ -4484,7 +4683,7 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
         thubBalance + tgsBalance,
         ''
     ];
-    
+
     totalCells.forEach((value, index) => {
         const td = document.createElement('td');
         if (index === 0 || index === 4) {
@@ -4496,7 +4695,7 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
         totalRow.appendChild(td);
     });
     tbody.appendChild(totalRow);
-    
+
     // Store data globally for download
     window.thubTgsComparisonDataNonRecurring = {
         toDate: toDate,
@@ -4512,7 +4711,7 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
         thubData: thubSummaryData && thubSummaryData.length > 0,
         tgsData: tgSummaryData && tgSummaryData.length > 0
     };
-    
+
     // Also store in the global variable for downloads
     allComparisonTableDataNonRecurring = [{
         sheetName: 'Total Expenditure (T-Hub & TGs)',
@@ -4540,7 +4739,7 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
             }
         ]
     }];
-    
+
     console.log('DEBUG: thubTgsComparisonDataNonRecurring stored:', window.thubTgsComparisonDataNonRecurring);
 }
 
@@ -4548,18 +4747,18 @@ function displayTHubTgsComparisonNonRecurring(tgSummaryData, thubSummaryData, to
 function displayTHubTotalsTableNonRecurring(thubTotalsData, toDate) {
     const section = document.getElementById('thubTotalsSectionNonRecurring');
     if (!section) return;
-    
+
     section.style.display = 'block';
-    
+
     const table = document.getElementById('thubTotalsTableNonRecurring');
     if (!table) return;
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
     if (!thead || !tbody) return;
-    
+
     thead.innerHTML = '';
     tbody.innerHTML = '';
-    
+
     // Create header row
     const headerRow = document.createElement('tr');
     const headers = [
@@ -4569,30 +4768,43 @@ function displayTHubTotalsTableNonRecurring(thubTotalsData, toDate) {
         { main: `Balance as on (${toDate || 'DD/MM/YYYY'})`, roman: '(IV = II - III)' },
         { main: 'Remarks', roman: '(if any)' }
     ];
-    
+
     headers.forEach(headerObj => {
         const th = document.createElement('th');
         th.innerHTML = `${headerObj.main}<br/><strong>${headerObj.roman}</strong>`;
         headerRow.appendChild(th);
     });
     thead.appendChild(headerRow);
-    
+
     // Add data rows - filter for Non-Recurring only
+    let totalFundsReleased = 0;
+    let totalExpenditure = 0;
+    let totalBalance = 0;
+
     if (thubTotalsData && thubTotalsData.length > 0) {
         // Filter for Non-Recurring rows only
         const nonRecurringRows = thubTotalsData.filter(row => row['Grant Type'] === 'Non-Recurring' && row['Hub'] !== 'Grand Total');
-        
+
         nonRecurringRows.forEach(row => {
             const tr = document.createElement('tr');
-            
+
+            const fundsReleased = parseFloat(row['Expenditure_Limit']) || 0;
+            const expenditure = parseFloat(row['Expenditure_Spent']) || 0;
+            const balance = parseFloat(row['Balance']) || 0;
+
+            // Add to totals
+            totalFundsReleased += fundsReleased;
+            totalExpenditure += expenditure;
+            totalBalance += balance;
+
             const cells = [
                 row['Hub'] || '',
-                row['Expenditure_Limit'] || '',
-                row['Expenditure_Spent'] || '',
-                row['Balance'] || '',
+                fundsReleased,
+                expenditure,
+                balance,
                 ''
             ];
-            
+
             cells.forEach((value, index) => {
                 const td = document.createElement('td');
                 if (index > 0 && index < 4) {
@@ -4603,26 +4815,62 @@ function displayTHubTotalsTableNonRecurring(thubTotalsData, toDate) {
                 }
                 tr.appendChild(td);
             });
-            
+
             tbody.appendChild(tr);
         });
+
+        // Add Total row
+        const totalRow = document.createElement('tr');
+        totalRow.style.fontWeight = 'bold';
+        totalRow.style.backgroundColor = '#e3f2fd';
+
+        const totalCells = [
+            'Total',
+            totalFundsReleased,
+            totalExpenditure,
+            totalBalance,
+            ''
+        ];
+
+        totalCells.forEach((value, index) => {
+            const td = document.createElement('td');
+            if (index === 0 || index === 4) {
+                td.textContent = value;
+            } else {
+                td.className = 'number';
+                td.textContent = formatCurrency(value);
+            }
+            totalRow.appendChild(td);
+        });
+        tbody.appendChild(totalRow);
     }
-    
+
     // Store data globally
     window.thubTotalsDataNonRecurring = thubTotalsData;
-    
+
     // Store in global variable for downloads
     if (thubTotalsData && thubTotalsData.length > 0) {
         const nonRecurringRows = thubTotalsData.filter(row => row['Grant Type'] === 'Non-Recurring' && row['Hub'] !== 'Grand Total');
+        const rowsForDownload = nonRecurringRows.map(row => ({
+            sanctioned_head: row['Hub'] || '',
+            total_funds_released: parseFloat(row['Expenditure_Limit']) || 0,
+            total_expenditure: parseFloat(row['Expenditure_Spent']) || 0,
+            balance: parseFloat(row['Balance']) || 0,
+            remarks: ''
+        }));
+
+        // Add total row to download data
+        rowsForDownload.push({
+            sanctioned_head: 'Total',
+            total_funds_released: totalFundsReleased,
+            total_expenditure: totalExpenditure,
+            balance: totalBalance,
+            remarks: ''
+        });
+
         allThubSummaryDataNonRecurring = [{
             sheetName: 'T-Hub-Wise Expenditure Summary',
-            rows: nonRecurringRows.map(row => ({
-                sanctioned_head: row['Hub'] || '',
-                total_funds_released: row['Expenditure_Limit'] || 0,
-                total_expenditure: row['Expenditure_Spent'] || 0,
-                balance: row['Balance'] || 0,
-                remarks: ''
-            }))
+            rows: rowsForDownload
         }];
     }
 }
@@ -4632,18 +4880,18 @@ const viewBtns = document.querySelectorAll('.view-btn');
 viewBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         const view = btn.getAttribute('data-view');
-        
+
         // Update active view button
         viewBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        
+
         // Show/hide view sections
         const documentView = document.getElementById('documentView');
         const ucView = document.getElementById('ucView');
         const excelView = document.getElementById('excelView');
         const downloadBtn = document.getElementById('downloadBtn');
         const downloadAllDocumentBtn = document.getElementById('downloadAllDocumentBtn');
-        
+
         if (view === 'document') {
             documentView.classList.add('active');
             ucView.classList.remove('active');
@@ -4680,15 +4928,15 @@ function switchToTab(tabName) {
     // Get all tab buttons and contents currently visible
     const allTabButtons = document.querySelectorAll('.tab-btn');
     const allTabContents = document.querySelectorAll('.tab-content');
-    
+
     // Remove active class from all buttons and contents
     allTabButtons.forEach(btn => btn.classList.remove('active'));
     allTabContents.forEach(content => content.classList.remove('active'));
-    
+
     // Add active class to selected button and content
     const targetButton = document.querySelector(`[data-tab="${tabName}"]`);
     const targetContent = document.getElementById(tabName);
-    
+
     if (targetButton) targetButton.classList.add('active');
     if (targetContent) targetContent.classList.add('active');
 }
@@ -4697,21 +4945,21 @@ function switchToTab(tabName) {
 function displayTGWiseSummary(tgWiseData, toDate) {
     const container = document.getElementById('tgWiseContainer');
     container.innerHTML = '';
-    
+
     // Sort TG keys
     const sortedTGs = Object.keys(tgWiseData).sort();
-    
+
     sortedTGs.forEach(tg => {
         const data = tgWiseData[tg];
-        
+
         const template = document.createElement('div');
         template.className = 'tg-template';
-        
+
         const header = document.createElement('div');
         header.className = 'tg-template-header';
         header.textContent = data.TG;
         template.appendChild(header);
-        
+
         // Date row
         if (toDate) {
             const dateRow = document.createElement('div');
@@ -4719,7 +4967,7 @@ function displayTGWiseSummary(tgWiseData, toDate) {
             dateRow.textContent = `Balance as on: ${toDate}`;
             template.appendChild(dateRow);
         }
-        
+
         // Total Funds Released
         const fundsRow = document.createElement('div');
         fundsRow.className = 'tg-template-row';
@@ -4728,7 +4976,7 @@ function displayTGWiseSummary(tgWiseData, toDate) {
             <span class="tg-template-value">${formatCurrency(data.Total_Funds_Released)}</span>
         `;
         template.appendChild(fundsRow);
-        
+
         // Total Expenditure
         const expenditureRow = document.createElement('div');
         expenditureRow.className = 'tg-template-row';
@@ -4737,7 +4985,7 @@ function displayTGWiseSummary(tgWiseData, toDate) {
             <span class="tg-template-value">${formatCurrency(data.Total_Expenditure)}</span>
         `;
         template.appendChild(expenditureRow);
-        
+
         // Balance
         const balanceRow = document.createElement('div');
         balanceRow.className = 'tg-template-row';
@@ -4746,7 +4994,7 @@ function displayTGWiseSummary(tgWiseData, toDate) {
             <span class="tg-template-value" style="${data.Balance > 0 ? 'color: #00a86b;' : 'color: #dc3545;'}">${formatCurrency(data.Balance)}</span>
         `;
         template.appendChild(balanceRow);
-        
+
         // Download button
         const downloadBtn = document.createElement('button');
         downloadBtn.className = 'tg-download-btn';
@@ -4755,7 +5003,7 @@ function displayTGWiseSummary(tgWiseData, toDate) {
             await downloadTGPDF(data, toDate);
         });
         template.appendChild(downloadBtn);
-        
+
         container.appendChild(template);
     });
 }
@@ -4764,15 +5012,15 @@ const tabButtons = document.querySelectorAll('.tab-btn');
 tabButtons.forEach(button => {
     button.addEventListener('click', () => {
         const targetTab = button.dataset.tab;
-        
+
         // Get all tab buttons and contents
         const allTabButtons = document.querySelectorAll('.tab-btn');
         const allTabContents = document.querySelectorAll('.tab-content');
-        
+
         // Remove active class from all tabs
         allTabButtons.forEach(btn => btn.classList.remove('active'));
         allTabContents.forEach(content => content.classList.remove('active'));
-        
+
         // Add active class to clicked tab
         button.classList.add('active');
         document.getElementById(targetTab).classList.add('active');

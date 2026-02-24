@@ -77,6 +77,159 @@ def format_currency(value):
     except:
         return value
 
+def apply_pdf_formatting_styles(docx_buffer):
+    """
+    Apply all PDF-specific formatting in a single pass:
+    - Line height to page 2
+    - Bottom margin to header images
+    
+    This combined approach ensures styles are properly preserved through conversion.
+    
+    Args:
+        docx_buffer: BytesIO buffer containing .docx content
+    
+    Returns:
+        BytesIO buffer with modified document
+    """
+    try:
+        from docx.oxml.ns import qn
+        from docx.oxml import OxmlElement, parse_xml
+        from docx.shared import Pt
+        
+        # Load document from buffer
+        docx_buffer.seek(0)
+        doc = Document(docx_buffer)
+        
+        print("=" * 50)
+        print("Applying PDF formatting styles...")
+        print("=" * 50)
+        
+        # ===== PART 1: Apply header image bottom margin =====
+        print("\n[1/2] Applying header bottom margin...")
+        for section_idx, section in enumerate(doc.sections):
+            header = section.header
+            
+            if header and len(header.paragraphs) > 0:
+                print(f"  Processing section {section_idx} header with {len(header.paragraphs)} paragraphs")
+                
+                for para_idx, paragraph in enumerate(header.paragraphs):
+                    # Apply generous spacing using both high-level API and XML
+                    # This ensures spacing is preserved in PDF
+                    
+                    # High-level API: Set space after
+                    paragraph.paragraph_format.space_after = Pt(18)  # Increased from 12pt
+                    
+                    # Also set line spacing for paragraphs in header
+                    paragraph.paragraph_format.line_spacing = 1.15
+                    
+                    # Direct XML manipulation for extra ensure spacing
+                    pPr = paragraph._element.get_or_add_pPr()
+                    
+                    # Remove any existing spacing elements
+                    for spacing in pPr.findall(qn('w:spacing')):
+                        pPr.remove(spacing)
+                    
+                    # Add spacing element with exact values
+                    spacing_xml = f'<w:spacing {parse_xml("xmlns:w=\'http://schemas.openxmlformats.org/wordprocessingml/2006/main\'").nsmap} w:after="216"/>'  # 216 twips = ~18pt
+                    spacing_elem = parse_xml(spacing_xml)
+                    pPr.append(spacing_elem)
+                    
+                    print(f"  ✓ Applied spacing to header paragraph {para_idx}")
+        
+        # ===== PART 2: Apply line height to page 2 =====
+        print("\n[2/2] Applying line height to page 2...")
+        
+        # Find page break
+        page_break_index = -1
+        paragraph_count = 0
+        
+        for idx, paragraph in enumerate(doc.paragraphs):
+            # Check for explicit page breaks
+            if paragraph.paragraph_format.page_break_before:
+                page_break_index = idx
+                print(f"  Found page break at paragraph {idx}")
+                break
+            
+            # Check for page break in runs
+            for run in paragraph.runs:
+                if 'br' in run._element.xml.lower() and 'pageBreak' in run._element.xml:
+                    page_break_index = idx
+                    print(f"  Found page break in runs at paragraph {idx}")
+                    break
+        
+        # If no explicit page break found, use estimate based on content
+        if page_break_index == -1:
+            page_break_index = 35  # Conservative estimate for page 2 start
+            print(f"  No explicit page break found, using estimated position: {page_break_index}")
+        
+        # Apply line spacing to page 2 paragraphs with XML-level enforcement
+        modified_count = 0
+        for idx in range(page_break_index, len(doc.paragraphs)):
+            paragraph = doc.paragraphs[idx]
+            
+            # High-level API: Set 1.5 line spacing
+            paragraph.paragraph_format.line_spacing = 1.5
+            
+            # Direct XML manipulation for extra assurance
+            pPr = paragraph._element.get_or_add_pPr()
+            
+            # Remove any existing line spacing elements
+            for spacing in pPr.findall(qn('w:spacing')):
+                pPr.remove(spacing)
+            
+            # Set line spacing via w:spacing element (240 twips per line = 1.0, so 360 = 1.5)
+            spacing_elem = parse_xml(
+                '<w:spacing {} w:line="360" w:lineRule="auto"/>'.format(
+                    'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+                )
+            )
+            pPr.append(spacing_elem)
+            
+            modified_count += 1
+        
+        print(f"  ✓ Applied 1.5 line spacing to {modified_count} paragraphs (page 2+)")
+        
+        # Apply line spacing to tables on page 2
+        for table_idx, table in enumerate(doc.tables):
+            # Estimate table position based on paragraphs before it
+            for row in table.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        para.paragraph_format.line_spacing = 1.5
+                        
+                        # XML-level enforcement
+                        pPr = para._element.get_or_add_pPr()
+                        for spacing in pPr.findall(qn('w:spacing')):
+                            pPr.remove(spacing)
+                        
+                        spacing_elem = parse_xml(
+                            '<w:spacing {} w:line="360" w:lineRule="auto"/>'.format(
+                                'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+                            )
+                        )
+                        pPr.append(spacing_elem)
+            
+            print(f"  ✓ Applied line spacing to table {table_idx}")
+        
+        # Save modified document back to buffer
+        output_buffer = io.BytesIO()
+        doc.save(output_buffer)
+        output_buffer.seek(0)
+        
+        print("\n" + "=" * 50)
+        print("PDF formatting styles applied successfully!")
+        print("=" * 50)
+        
+        return output_buffer
+    
+    except Exception as e:
+        print(f"\n❌ Error applying PDF formatting styles: {e}")
+        import traceback
+        traceback.print_exc()
+        # Return original buffer if modification fails
+        docx_buffer.seek(0)
+        return docx_buffer
+
 def process_option1(input_file):
     """Filter by Hybrid Agency"""
     search_text = "TNCH00009452"
@@ -1261,6 +1414,10 @@ def download_uc_document():
                     as_attachment=True,
                     download_name=filename
                 )
+            
+            # Apply all PDF formatting styles in a single pass
+            print("Applying PDF formatting styles (line height & header margin)...")
+            output = apply_pdf_formatting_styles(output)
             
             # Attempt PDF conversion
             import tempfile

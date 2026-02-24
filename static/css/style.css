@@ -1281,6 +1281,15 @@
             vertical-align: middle;
         }
 
+        /* Style for Closing Balances (5-6) header - column 9 */
+        .uc-template-table thead tr:first-child th:nth-child(9) {
+            font-size: 7pt;
+            text-align: center;
+            vertical-align: middle;
+            padding: 8px 4px;
+            line-height: 1.2;
+        }
+
         /* GFR 12-B Checks Section Styling */
         .checks-section {
             display: flex;
@@ -1315,7 +1324,7 @@
         .checks-right {
             flex: 0 0 auto;
             min-width: 280px;
-            text-align: right;
+            text-align: left;
         }
 
         .checks-right p {
