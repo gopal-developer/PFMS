@@ -3028,13 +3028,13 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
         <tr>
             <td style="width: 50%; border: none; padding: 0; text-align: left; vertical-align: top;">
                 <div style="font-size: 10pt; text-align: left;">Signature</div>
-                <div style="margin-top: 40px; font-size: 10pt; font-weight: bold;">Ravindra Padmakar Barlingay</div>
+                <div style="margin-top: 40px; font-size: 10pt; ">Ravindra Padmakar Barlingay</div>
                 <div style="font-size: 10pt;">Chief Finance Officer</div>
                 <div style="font-size: 10pt;">(Head of the Finance)</div>
             </td>
             <td style="width: 50%; border: none; padding: 0; text-align: right; vertical-align: top;">
-                <div style="font-size: 10pt; text-align: right;">Signature</div>
-                <div style="margin-top: 40px; font-size: 10pt; font-weight: bold; text-align: right;">Anil Prabhakar</div>
+                <div style="font-size: 10pt; text-align: right;margin-right: 90px">Signature</div>
+                <div style="margin-top: 40px; font-size: 10pt;  text-align: right; margin-right: 60px;">Anil Prabhakar</div>
                 <div style="font-size: 10pt; text-align: right;">Head of the Organisation</div>
             </td>
         </tr>
@@ -3056,11 +3056,11 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     </div>
 
     <div class="uc-paragraph">
-        (1) Certified that out of the Grant-in-aid of <u>${page3GrantText}</u> during the year ${financialYearText} an amount of <u>Rs. ${formatCurrency(expenditureHalf)}</u> has been utilized for the purpose for which it was sanctioned, and that the balance of <u>Rs. ${formatCurrency(closingBalance)}</u>  remaining unutilized at the end of the year __________ has been surrendered to the Government [vide No. __________ dated __________] / will be adjusted towards the Grant-in-aid payable during the next financial year.
+        (1) Certified that out of the Grant-in-aid of <u>${page3GrantText}</u> during the year ${financialYearText} an amount of <u>Rs. ${formatCurrency(expenditureHalf)}</u> has been utilized for the purpose for which it was sanctioned, and that the balance of <u>Rs. ${formatCurrency(closingBalance)}</u> <s> remaining unutilized at the end of the year __________ has been surrendered to the Government [vide No. __________ dated __________] / will be adjusted towards the Grant-in-aid payable during the next financial year</s>.
     </div>
 
     <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
-        (2) Certified that I have satisfied myself that the conditions on which the loan was sanctioned have been duly fulfilled / are being fulfilled and that I have exercised the following checks to see that the money was actually spent for the purpose for which the loan was made.
+        (2) Certified that I have satisfied myself that the conditions on which the <s>loan</s> was sanctioned <s>have been duly fulfilled</s> / are being fulfilled and that I have exercised the following checks to see that the money was actually spent for the purpose for which the loan was made.
     </div>
 
     <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">Kind of checks exercised</div>
@@ -3072,9 +3072,9 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     <div class="uc-signatures" style="margin-top: 18pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
         <div class="uc-sign-right">
             <div class="uc-sign-block">
-                <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Signature...............................</div>
-                <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Designation..................................</div>
-                <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Date..................................</div>
+                <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;">Ravindra Padmakar Barlingay</div>
+                <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right; margin-right: 43px;">Chief Executive Officer</div>
+                <div style="font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif; text-align: right;margin-right: 80px;">Date ${formattedDate}</div>
             </div>
         </div>
     </div>
