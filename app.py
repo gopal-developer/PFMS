@@ -113,103 +113,54 @@ def apply_pdf_formatting_styles(docx_buffer):
                 print(f"  Processing section {section_idx} header with {len(header.paragraphs)} paragraphs")
                 
                 for para_idx, paragraph in enumerate(header.paragraphs):
-                    # Apply generous spacing using both high-level API and XML
-                    # This ensures spacing is preserved in PDF
+                    # Apply minimal spacing - CSS handles the rest
+                    # High-level API: Set space after to minimal
+                    paragraph.paragraph_format.space_after = Pt(0)
                     
-                    # High-level API: Set space after
-                    paragraph.paragraph_format.space_after = Pt(18)  # Increased from 12pt
+                    # Set line spacing for paragraphs in header
+                    paragraph.paragraph_format.line_spacing = 1.0
                     
-                    # Also set line spacing for paragraphs in header
-                    paragraph.paragraph_format.line_spacing = 1.15
-                    
-                    # Direct XML manipulation for extra ensure spacing
+                    # Direct XML manipulation to ensure no extra spacing
                     pPr = paragraph._element.get_or_add_pPr()
                     
                     # Remove any existing spacing elements
                     for spacing in pPr.findall(qn('w:spacing')):
                         pPr.remove(spacing)
                     
-                    # Add spacing element with exact values
-                    spacing_xml = f'<w:spacing {parse_xml("xmlns:w=\'http://schemas.openxmlformats.org/wordprocessingml/2006/main\'").nsmap} w:after="216"/>'  # 216 twips = ~18pt
-                    spacing_elem = parse_xml(spacing_xml)
-                    pPr.append(spacing_elem)
-                    
-                    print(f"  ✓ Applied spacing to header paragraph {para_idx}")
+                    print(f"  ✓ Applied minimal spacing to header paragraph {para_idx}")
         
-        # ===== PART 2: Apply line height to page 2 =====
-        print("\n[2/2] Applying line height to page 2...")
+        # ===== PART 2: Remove line height from page 2 (CSS handles it) =====
+        print("\n[2/2] Skipping line height adjustment (CSS handles spacing)...")
+        print(f"  ✓ Allowing CSS styling to control line height and spacing")
         
-        # Find page break
-        page_break_index = -1
-        paragraph_count = 0
-        
-        for idx, paragraph in enumerate(doc.paragraphs):
-            # Check for explicit page breaks
-            if paragraph.paragraph_format.page_break_before:
-                page_break_index = idx
-                print(f"  Found page break at paragraph {idx}")
-                break
-            
-            # Check for page break in runs
-            for run in paragraph.runs:
-                if 'br' in run._element.xml.lower() and 'pageBreak' in run._element.xml:
-                    page_break_index = idx
-                    print(f"  Found page break in runs at paragraph {idx}")
-                    break
-        
-        # If no explicit page break found, use estimate based on content
-        if page_break_index == -1:
-            page_break_index = 35  # Conservative estimate for page 2 start
-            print(f"  No explicit page break found, using estimated position: {page_break_index}")
-        
-        # Apply line spacing to page 2 paragraphs with XML-level enforcement
-        modified_count = 0
-        for idx in range(page_break_index, len(doc.paragraphs)):
-            paragraph = doc.paragraphs[idx]
-            
-            # High-level API: Set 1.5 line spacing
-            paragraph.paragraph_format.line_spacing = 1.5
-            
-            # Direct XML manipulation for extra assurance
+        # ===== PART 3: Remove list indentation added by Word =====
+        print("\n[3/3] Removing Word's default list indentation...")
+        list_removed_count = 0
+        for paragraph in doc.paragraphs:
             pPr = paragraph._element.get_or_add_pPr()
             
-            # Remove any existing line spacing elements
-            for spacing in pPr.findall(qn('w:spacing')):
-                pPr.remove(spacing)
+            # Remove any indentation from lists (left_indent, hanging_indent)
+            for indentation in pPr.findall(qn('w:ind')):
+                pPr.remove(indentation)
+                list_removed_count += 1
             
-            # Set line spacing via w:spacing element (240 twips per line = 1.0, so 360 = 1.5)
-            spacing_elem = parse_xml(
-                '<w:spacing {} w:line="360" w:lineRule="auto"/>'.format(
-                    'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
-                )
-            )
-            pPr.append(spacing_elem)
-            
-            modified_count += 1
+            # Also set left_indent and right_indent to 0 via API to be sure
+            paragraph.paragraph_format.left_indent = Pt(0)
+            paragraph.paragraph_format.right_indent = Pt(0)
         
-        print(f"  ✓ Applied 1.5 line spacing to {modified_count} paragraphs (page 2+)")
-        
-        # Apply line spacing to tables on page 2
-        for table_idx, table in enumerate(doc.tables):
-            # Estimate table position based on paragraphs before it
+        # Also handle table cells
+        for table in doc.tables:
             for row in table.rows:
                 for cell in row.cells:
-                    for para in cell.paragraphs:
-                        para.paragraph_format.line_spacing = 1.5
-                        
-                        # XML-level enforcement
-                        pPr = para._element.get_or_add_pPr()
-                        for spacing in pPr.findall(qn('w:spacing')):
-                            pPr.remove(spacing)
-                        
-                        spacing_elem = parse_xml(
-                            '<w:spacing {} w:line="360" w:lineRule="auto"/>'.format(
-                                'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
-                            )
-                        )
-                        pPr.append(spacing_elem)
-            
-            print(f"  ✓ Applied line spacing to table {table_idx}")
+                    for paragraph in cell.paragraphs:
+                        pPr = paragraph._element.get_or_add_pPr()
+                        for indentation in pPr.findall(qn('w:ind')):
+                            pPr.remove(indentation)
+                            list_removed_count += 1
+                        paragraph.paragraph_format.left_indent = Pt(0)
+                        paragraph.paragraph_format.right_indent = Pt(0)
+        
+        print(f"  ✓ Removed indentation from {list_removed_count} list elements")
         
         # Save modified document back to buffer
         output_buffer = io.BytesIO()

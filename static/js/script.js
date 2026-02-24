@@ -3007,40 +3007,40 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     </div>
     <p class="uc-paragraph" style="text-align: justify; margin: 2px 0; line-height: 1.25; font-size: 9pt; margin-top: 8px">Certified that I have satisfied myself that the conditions on which grants were sanctioned have been duly fulfilled / are being fulfilled and that I have exercised following checks to see that the money has been actually utilized for the purpose for which it was sanctioned:</p>
 
-    <ol class="uc-list" style="margin-top: 8px; margin-bottom: 8px; margin-left: 30px; padding-left: 0px;">
-        <li style="margin-bottom: 8px; line-height: 1.6;">The main accounts and other subsidiary accounts and registers (including assets registers) are maintained as prescribed in the relevant Act/Rules/Standing instructions and have been duly audited by designated auditors. The figures depicted above tally with the audited figures mentioned in financial statements/accounts.</li>
-        <li style="margin-bottom: 8px; line-height: 1.6;">There exist internal controls for safeguarding public funds/assets, watching outcomes and achievements of physical targets against the financial inputs, ensuring quality in asset creation etc. and the periodic evaluation of internal controls is exercised to ensure their effectiveness.</li>
-        <li style="margin-bottom: 8px; line-height: 1.6;">To the best of our knowledge and belief, no transactions have been entered that are in violation of relevant Act/Rules/standing instructions and scheme guidelines.</li>
-        <li style="margin-bottom: 8px; line-height: 1.6;">The responsibilities among the key functionaries for execution of the scheme have been assigned in clear terms and are not general in nature.</li>
-        <li style="margin-bottom: 8px; line-height: 1.6;">The benefits were extended to the intended beneficiaries and only such areas/districts were covered where the scheme was intended to operate.</li>
-        <li style="margin-bottom: 8px; line-height: 1.6;">The expenditure on various components of the scheme was in the proportions authorized as per the scheme guidelines and terms and conditions of the grants-in-aid.</li>
-        <li style="margin-bottom: 8px; line-height: 1.6;">It has been ensured that the physical and financial performance under the scheme has been achieved according to the requirements, as prescribed in the guidelines issued by the Government of India and the performance/targets achieved till the end of the year to which the utilization of the fund related is compared with Annexure - I duly enclosed.</li>
-        <li style="margin-bottom: 8px; line-height: 1.6;">The utilization of the fund resulted in outcomes in the Annexure - I duly enclosed (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</li>
-        <li style="margin-bottom: 8px; line-height: 1.6;">Details of various schemes executed by the agency through grants-in-aid received from the same Ministry/Department or from other Ministries is enclosed at Annexure - II (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</li>
-    </ol>
+    <div class="uc-list" style="margin-top: 8px; margin-bottom: 8px;">
+        <div style="margin-bottom: 8px; margin-left:30px; "><span>1.</span> The main accounts and other subsidiary accounts and registers (including assets registers) are maintained as prescribed in the relevant Act/Rules/Standing instructions and have been duly audited by designated auditors. The figures depicted above tally with the audited figures mentioned in financial statements/accounts.</div>
+        <div style="margin-bottom: 8px; margin-left:30px; "><span>2.</span> There exist internal controls for safeguarding public funds/assets, watching outcomes and achievements of physical targets against the financial inputs, ensuring quality in asset creation etc. and the periodic evaluation of internal controls is exercised to ensure their effectiveness.</div>
+        <div style="margin-bottom: 8px; margin-left:30px; "><span>3.</span> To the best of our knowledge and belief, no transactions have been entered that are in violation of relevant Act/Rules/standing instructions and scheme guidelines.</div>
+        <div style="margin-bottom: 8px; margin-left:30px; "><span>4.</span> The responsibilities among the key functionaries for execution of the scheme have been assigned in clear terms and are not general in nature.</div>
+        <div style="margin-bottom: 8px; margin-left:30px; "><span>5.</span> The benefits were extended to the intended beneficiaries and only such areas/districts were covered where the scheme was intended to operate.</div>
+        <div style="margin-bottom: 8px; margin-left:30px; "><span>6.</span> The expenditure on various components of the scheme was in the proportions authorized as per the scheme guidelines and terms and conditions of the grants-in-aid.</div>
+        <div style="margin-bottom: 8px; margin-left:30px; "><span>7.</span> It has been ensured that the physical and financial performance under the scheme has been achieved according to the requirements, as prescribed in the guidelines issued by the Government of India and the performance/targets achieved till the end of the year to which the utilization of the fund related is compared with Annexure - I duly enclosed.</div>
+        <div style="margin-bottom: 8px; margin-left:30px; "><span>8.</span> The utilization of the fund resulted in outcomes in the Annexure - I duly enclosed (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</div>
+        <div style="margin-bottom: 8px; margin-left:30px; "><span>9.</span> Details of various schemes executed by the agency through grants-in-aid received from the same Ministry/Department or from other Ministries is enclosed at Annexure - II (to be formulated by the Ministry/Department concerned as per their requirements/specifications).</div>
+    </div>
 
     <div style="margin-top: 24px;">
         <div style="font-size: 10pt; line-height: 1.6;">Date: ${formattedDate}</div>
         <div style="font-size: 10pt; line-height: 1.6;">Place: Chennai</div>
     </div>
 
-    <table style="width: 100%; border-collapse: collapse; margin-top: 24px;">
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
         <tr>
             <td style="width: 50%; border: none; padding: 0; text-align: left; vertical-align: top;">
                 <div style="font-size: 10pt; text-align: left;">Signature</div>
-                <div style="margin-top: 50px; font-size: 10pt; font-weight: bold;">Ravindra Padmakar Barlingay</div>
+                <div style="margin-top: 40px; font-size: 10pt; font-weight: bold;">Ravindra Padmakar Barlingay</div>
                 <div style="font-size: 10pt;">Chief Finance Officer</div>
                 <div style="font-size: 10pt;">(Head of the Finance)</div>
             </td>
             <td style="width: 50%; border: none; padding: 0; text-align: right; vertical-align: top;">
                 <div style="font-size: 10pt; text-align: right;">Signature</div>
-                <div style="margin-top: 50px; font-size: 10pt; font-weight: bold; text-align: right;">Anil Prabhakar</div>
+                <div style="margin-top: 40px; font-size: 10pt; font-weight: bold; text-align: right;">Anil Prabhakar</div>
                 <div style="font-size: 10pt; text-align: right;">Head of the Organisation</div>
             </td>
         </tr>
     </table>
 
-    <div style="margin-top: 18px; font-size: 10pt;">(Strike out inapplicable terms)</div>
+    <div style="margin-top: 10px; font-size: 10pt;">(Strike out inapplicable terms)</div>
 </div>
 `;
 
@@ -3064,10 +3064,10 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
     </div>
 
     <div class="uc-paragraph" style="margin-top: 10pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">Kind of checks exercised</div>
-    <ol class="uc-list" style="margin-top: 8px; margin-bottom: 8px; margin-left: 30px; padding-left: 0px;">
-        <li style="margin-bottom: 8px; line-height: 1.6;">Sanction order</li>
-        <li style="margin-bottom: 8px; line-height: 1.6;">PFMS Report HTSA</li>
-    </ol>
+    <div class="uc-list" style="margin-top: 8px; margin-bottom: 8px;">
+        <div style="margin-bottom: 8px; line-height: 1.6;"><span style="font-weight: bold;">1.</span> Sanction order</div>
+        <div style="margin-bottom: 8px; line-height: 1.6;"><span style="font-weight: bold;">2.</span> PFMS Report HTSA</div>
+    </div>
 
     <div class="uc-signatures" style="margin-top: 18pt; font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;">
         <div class="uc-sign-right">
@@ -3217,26 +3217,30 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
                         text-align: left;
-                        margin-top: 6px
+                        margin-top: 6px;
+                        margin-left: 0;
+                        padding-left: 0;
                     }
                     .uc-list li { 
-                     margin: 6px 0;
-                     text-align: justify;
-                     font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-                      font-size: 10pt;
-                     line-height: 1.6;   
-                     margin-top: 6px
-                     }
-                    .uc-list ul { 
-                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-                        font-size: 10pt;
-                        margin-top: 6px
-                    }
-                    .uc-list ul li { 
+                        margin: 8px 0;
                         text-align: justify;
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
-                        margin-top: 16px
+                        line-height: 1.6;
+                    }
+                    .uc-list ul { 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        margin-top: 6px;
+                        margin-left: 0;
+                        padding-left: 0;
+                    }
+                    .uc-list ul li { 
+                        margin: 8px 0;
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        line-height: 1.6;
                     }
                     .uc-sign-table { 
                         width: 100%; 
@@ -3313,11 +3317,15 @@ async function generateUCDocument(type = 'recurring', format = 'pdf') {
                     ol, ul {
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
+                        margin-left: 0;
+                        padding-left: 0;
                     }
                     li {
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
                         text-align: justify;
+                        margin-left: 0;
+                        padding-left: 0;
                     }
                     strong, b {
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
@@ -3509,7 +3517,6 @@ ${pageOne}${pageTwo}${pageThree}
                         margin: 10px 0;
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 12pt;
-                        
                     }
                     .uc-end-section { 
                         margin-top: 10px;
@@ -3526,26 +3533,30 @@ ${pageOne}${pageTwo}${pageThree}
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
                         text-align: left;
-                        margin-top: 6px
+                        margin-top: 6px;
+                        margin-left: 0;
+                        padding-left: 0;
                     }
                     .uc-list li { 
-                     margin: 6px 0;
-                     text-align: justify;
-                     font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-                      font-size: 10pt;
-                     line-height: 1.6;   
-                     margin-top: 6px
-                     }
-                    .uc-list ul { 
-                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
-                        font-size: 10pt;
-                        margin-top: 6px
-                    }
-                    .uc-list ul li { 
+                        margin: 8px 0;
                         text-align: justify;
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
-                        margin-top: 16px
+                        line-height: 1.6;
+                    }
+                    .uc-list ul { 
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        margin-top: 6px;
+                        margin-left: 0;
+                        padding-left: 0;
+                    }
+                    .uc-list ul li { 
+                        margin: 8px 0;
+                        text-align: justify;
+                        font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
+                        font-size: 10pt;
+                        line-height: 1.6;
                     }
                     .uc-sign-table { 
                         width: 100%; 
@@ -3622,11 +3633,15 @@ ${pageOne}${pageTwo}${pageThree}
                     ol, ul {
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
+                        margin-left: 0;
+                        padding-left: 0;
                     }
                     li {
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
                         font-size: 10pt;
                         text-align: justify;
+                        margin-left: 0;
+                        padding-left: 0;
                     }
                     strong, b {
                         font-family: 'FuturaBT-Book', 'Futura BT Book', 'Futura', Arial, sans-serif;
